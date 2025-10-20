@@ -3,6 +3,7 @@ __author__  = "Mats Leandersson"
 
 
 """
+Version 25.10.20    Added fermi map viewer
 Version 25.10.18    Plots asymmetry(), polarization() 
 Version 25.10.06    Progressing...
 Version 25.10.03    The first version.
@@ -13,9 +14,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 from copy import deepcopy
 
+try: from dopey.dopey_methods import fermiMapCut
+except: 
+    try: from dopey.dopey_methods import fermiMapCut
+    except: print(f"{Fore.RED}{__name__} could not import required methods from dopey_methods.{Fore.RESET}")
+
+try: 
+    import ipywidgets as ipw
+    from IPython.display import display
+except: print(f"{Fore.RED}{__name__} could not import the ipywidget module and/or display from IPython.display.{Fore.RESET}")
 
 
 
+# ==============================================================================================================================
+# ==============================================================================================================================
 # ==============================================================================================================================
 # ==============================================================================================================================
 
@@ -38,6 +50,7 @@ def plot(D = object, ax = None, **kwargs):
     if D.data_type == "spin_mdc": return _plot_data_spin_edc(D = D, ax = ax, **kwargs)
     if D.data_type == "spin_map": return _plot_data_spin_map(D = D, ax = ax, **kwargs)
     if D.data_type == "spin_polarization": return _plot_data_spin_polarization(D = D, ax = ax, **kwargs)
+    if D.data_type == "ccd_3d": return _plot_data_ccd3d(D = D, ax = ax, **kwargs)
         
 
 
@@ -478,4 +491,98 @@ def _plot_data_spin_polarization(D = object, ax = None, **kwargs):
     fig.tight_layout()
         
     
-        
+
+
+
+
+
+
+
+# ==============================================================================================================================
+# ==============================================================================================================================
+# ==============================================================================================================================
+# ==============================================================================================================================
+
+
+
+def _plot_data_ccd3d(D = object, ax = None, **kwargs):
+    """
+    """
+    try:
+        if kwargs.get("help", False):
+            print(f"{Fore.BLUE}Arguments:")
+            print("D           Data object")
+            print("ax          matplotlib.axes._axes.Axes")
+            print("cmap        string (like 'bone_r', 'hot', 'rainbow', 'viridis', ...)")
+            print(Fore.RESET)
+    except: pass
+    #
+    try: d_type = D.data_type
+    except: d_type = "not_ccd_3d"
+    if not type(d_type) is str:
+        print(f"{Fore.RED}I expected a data object of type Fermi map.{Fore.RESET}"); return
+    if not d_type == "ccd_3d":
+        print(f"{Fore.RED}I expected a data object of type Fermi map.{Fore.RESET}"); return
+    #
+    cmap = kwargs.get("cmap", "hot_r")
+    if not type(cmap) is str:
+        print(f"{Fore.MAGENTA}The argument cmap must be a (valid) string. Ignoring it.{Fore.RESET}"); cmap = "viridis"
+    #
+    ENERGY, ANGLEX, ANGLEY = D.axis2, D.axis0, D.axis1
+    DE = (ENERGY[-1] - ENERGY[0]) / (len(ENERGY) -1)
+    DAX = (ANGLEX[-1] - ANGLEX[0]) / (len(ANGLEX) -1)
+    DAY = (ANGLEY[-1] - ANGLEY[0]) / (len(ANGLEY) -1)
+
+    SliderE = ipw.FloatSlider(min=ENERGY[0], max=ENERGY[-1], step = DE, description = 'Energy', value = ENERGY.mean(), readout_format = ".3f")
+    SliderDE = ipw.FloatSlider(min=DE, max=20*DE, step = DE, description = 'dE', value = 1*DE, readout_format = ".3f")
+    SliderX = ipw.FloatSlider(min=ANGLEX[0], max=ANGLEX[-1], step = DAX, description = 'ShiftX', value = ANGLEX.mean(), readout_format = ".3f")
+    SliderDX = ipw.FloatSlider(min=DAX, max=20*DAX, step = DAX, description = 'dX', value = 1*DAX, readout_format = ".3f")
+    SliderY = ipw.FloatSlider(min=ANGLEY[0], max=ANGLEY[-1], step = DAY, description = 'ThetaY', value = ANGLEY.mean(), readout_format = ".3f")
+    SliderDY = ipw.FloatSlider(min=DAY, max=20*DAY, step = DAY, description = 'dY', value = 1*DAY, readout_format = ".3f")
+    extentE = [ANGLEX[0], ANGLEX[-1], ANGLEY[-1], ANGLEY[0]]
+    extentX = [ANGLEY[0], ANGLEY[-1], ENERGY[-1], ENERGY[0]]
+    extentY = [ANGLEX[0], ANGLEX[-1], ENERGY[-1], ENERGY[0]]
+
+    SliderVmin = ipw.FloatSlider(min=0, max=D.intensity.max(), step = D.intensity.max()/20, description = 'Imin', value = 0, readout_format = ".1f")
+    SliderVmax = ipw.FloatSlider(min=0, max=D.intensity.max(), step = D.intensity.max()/20, description = 'Imax', value = D.intensity.max(), readout_format = ".1f")
+    
+    box1 = ipw.HBox( [ipw.VBox([SliderE, SliderDE]), ipw.VBox([SliderX, SliderDX]), ipw.VBox([SliderY, SliderDY])])
+
+    def plot(E, DE, X, DX, Y, DY):
+        fig, ax = plt.subplots(ncols = 3, figsize = (9,3))
+        #
+        Emap = fermiMapCut(D, axis = "E", E1 = E-DE/2, E2 = E+DE/2).intensity.T
+        ax[0].imshow(Emap, extent = extentE, aspect = "equal", cmap = cmap)
+        Xmap = fermiMapCut(D, axis = "x", x1 = X-DX/2, x2 = X+DX/2).intensity.T
+        ax[1].imshow(Xmap, extent = extentX, aspect = "auto", cmap = cmap)
+        Ymap = fermiMapCut(D, axis = "y", y1 = Y-DY/2, y2 = Y+DY/2).intensity.T
+        ax[2].imshow(Ymap, extent = extentY, aspect = "auto", cmap = cmap)
+        #
+        ax[0].axvline(x = X, color = "red", linewidth = 0.7)
+        ax[0].axhline(y = Y, color = "red", linewidth = 0.7)
+        ax[1].axhline(y = E, color = "red", linewidth = 0.7)
+        ax[2].axhline(y = E, color = "red", linewidth = 0.7)
+        #
+        for i, txt in enumerate(["X-Y", "Y-E", "X-E"]): 
+            ax[i].invert_yaxis()
+            ax[i].set_title(txt, fontsize = 10)
+        ax[0].set_ylabel("ThetaY", fontsize = 9)
+        ax[0].set_xlabel("ShiftX", fontsize = 9)
+        ax[1].set_ylabel("Kinetic energy", fontsize = 9)
+        ax[1].set_xlabel("ThetaY", fontsize = 9)
+        ax[2].set_ylabel("Kinetic energy", fontsize = 9)
+        ax[2].set_xlabel("ShiftX", fontsize = 9)
+        #
+        fig.tight_layout()
+    
+    Interact = ipw.interactive_output(plot, {'E': SliderE, 
+                                             'DE': SliderDE, 
+                                             "X": SliderX,
+                                             "DX": SliderDX,
+                                             "Y": SliderY,
+                                             "DY": SliderDY})
+    
+    #
+    box_out = ipw.VBox([Interact, box1])
+    box_out.layout = ipw.Layout(border="solid 1px gray", margin="5px", padding="2")
+    display(box_out)
