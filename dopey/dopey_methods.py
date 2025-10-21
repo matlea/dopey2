@@ -8,7 +8,6 @@ Version 25.10.08    The first version.
 """
 
 
-
 import numpy as np
 from copy import deepcopy
 from colorama import Fore
@@ -295,7 +294,7 @@ def align(D = object, **kwargs):
         elif Figure == "Circle":
             circle = Circle((X, Y), radius=S, alpha=0.2, edgecolor='k', facecolor = "tab:red")
             ax.add_patch(circle)
-        
+        #
         s = 0.5
         x1, y1 = X + s * np.sin(np.deg2rad(A)), Y + s * np.cos(np.deg2rad(A))
         x2, y2 = X - s * np.sin(np.deg2rad(A)), Y - s * np.cos(np.deg2rad(A))
@@ -303,15 +302,13 @@ def align(D = object, **kwargs):
         x1, y1 = X + s * np.sin(np.deg2rad(A+90)), Y + s * np.cos(np.deg2rad(A+90))
         x2, y2 = X - s * np.sin(np.deg2rad(A+90)), Y - s * np.cos(np.deg2rad(A+90))
         ax.plot([x1, x2], [y1, y2], color = "tab:red", linewidth = 0.5)
-
-
         #
         ax.set_xlabel('X (°)')
         ax.set_ylabel('Y (°)')
         #
         #ax.set_title("ID {0}".format(D.get('experiment', {}).get('Spectrum_ID', '')))
         fig.tight_layout()
-    
+    #
     Interact = ipw.interactive_output(plot, {'E': SliderE, 
                                              'DE': SliderDE, 
                                              "VMIN": SliderVmin,
@@ -322,7 +319,7 @@ def align(D = object, **kwargs):
                                              "S": SliderS,
                                              "S2": SliderS2,
                                              "Figure": DropdownFigure})
-    
+    #
     box_out = ipw.HBox([Interact, vbox])
     box_out.layout = ipw.Layout(border="solid 1px gray", margin="5px", padding="2")
     display(box_out)
