@@ -1,6 +1,6 @@
-__version__ = "25.10.19"
+__version__ = "25.10.21"
 __author__  = "Mats Leandersson"
 
 
 SHERMAN = 0.29
-WORKFUNCTION = 4.5
+WORKFUNCTION = 4.39
