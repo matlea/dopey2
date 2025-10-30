@@ -29,7 +29,7 @@ except:
 def subArray(D = object, axis = -1, **kwargs):
     """
     """
-    shup = kwargs.get("shup", False)
+    shup = kwargs.get("shup", True)
     if not type(shup) is bool: shup = False
     #
     DD = deepcopy(D)
@@ -89,7 +89,11 @@ def subArray(D = object, axis = -1, **kwargs):
             DD.axis2 = axis_range
         #
         if not shup:
-            print(f"{Fore.BLUE}Returning data for axis {axis} between {axis_range.min()} and {axis_range.max()}.{Fore.RESET}")
+            if axis == 0: axis_str = DD.axis0_label
+            elif axis == 1: axis_str = DD.axis1_label
+            elif axis == 2: axis_str = DD.axis2_label
+            print(f"{Fore.BLUE}Returning data for axis {axis} ({axis_str}) between {axis_range.min()} and {axis_range.max()}.{Fore.RESET}")
+            
         #
         return DD
     #
@@ -102,6 +106,46 @@ def subArray(D = object, axis = -1, **kwargs):
         
         
 
+
+
+
+def compact(D = object, **kwargs):
+    shup = kwargs.get("shup", False)
+    if not type(shup) is bool: shup = False
+    #
+    DD = deepcopy(D)
+    try: typ = DD.data_type
+    except:
+        print(f"{Fore.RED}The argument D must be Data object.{Fore.RESET}"); return DD
+    #
+    axis = kwargs.get("axis", None)
+    try: axis = abs(int(axis))
+    except:
+        print(f"{Fore.RED}The argument axis must be an integer (axis number).{Fore.RESET}"); return DD
+    #
+    int_dim = len(np.shape(DD.intensity))
+    #
+    if "ccd" in typ or "fermi_cut" in typ:
+        if axis >= int_dim:
+            print(f"{Fore.RED}The argument axis must be an integer (0 <= axis <= {int_dim - 1}). {Fore.RESET}"); return DD
+        if int_dim == 2:
+            DD.intensity = D.intensity.sum(axis = axis)
+            if axis == 1:
+                pass
+            elif axis == 0:
+                DD.axis0 = DD.axis1
+                DD.axis0_label = DD.axis1_label
+            del DD.__dict__["__axis1"]
+            del DD.__dict__["__axis1_label"]
+            DD.data_type = "1d"
+        else:
+           print(f"{Fore.MAGENTA}I am not ready for this type of data yet...{Fore.RESET}"); return DD 
+                
+    #
+    else:
+        print(f"{Fore.MAGENTA}I am not ready for this type of data yet...{Fore.RESET}"); return DD
+    #
+    return DD
         
 
 # =====================================================================================================================

@@ -1,8 +1,9 @@
-__version__ = "25.10.13"
+__version__ = "25.10.30"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 25.10.16    Small update: added .arrays as a attribute to Data object.
 Version 25.10.16    Progressing...
 Version 25.10.13    Created an "independent" pure data class instead of having one in the loader class (Data())
 Version 25.10.03    The first working version.
@@ -530,6 +531,15 @@ class _DataObject():
     def info(self):
         dataInfo(self)
     
+    @property
+    def arrays(self):
+        lst = self.listArrays()
+        print(f"Arrays:")
+        for attr in lst:
+            shape = np.shape(self.__dict__["__"+attr])
+            print(f"  {Fore.BLUE}{attr.ljust(20)}{Fore.RESET}shape={shape}")
+            
+    
     # --------------------------------------------------------------------------
     
     def printDataType(self):
@@ -548,6 +558,14 @@ class _DataObject():
         lst = []
         for key in self.__dict__.keys(): lst.append(key.replace("__",""))
         return lst
+    
+    def listArrays(self):
+        lst = []
+        for key in self.__dict__.keys(): 
+            if type(self.__dict__.get(key, None)) is np.ndarray:
+                lst.append(key.replace("__",""))
+        return lst
+        
     
     
     

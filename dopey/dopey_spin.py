@@ -1,8 +1,9 @@
-__version__ = "25.10.18"
+__version__ = "25.10.30"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 25.10.30    Added a de-spike method but it still not working properly.
 Version 25.10.18    asymmetry(), polarization() 
 Version 25.10.13    Progressing...
 Version 25.10.13    The first version.
@@ -484,4 +485,85 @@ def polarization(**kwargs):
     
     
     
- 
+# =================================================================    
+# =================================================================    
+# ================================================================= 
+
+def despikeSpin(D = object, **kwargs):
+    """
+    """
+    try:
+        if kwargs.get("help", False):
+            print(f"{Fore.BLUE}Arguments needed:")
+            print("  D             spin data object from .load()")
+            print(f"{Fore.BLUE}Keyword arguments:")
+            print(Fore.RESET)
+    except: pass
+    #
+    DD = deepcopy(D)
+    #
+    try: typ = DD.data_type
+    except:
+        print(f"{Fore.RED}The argument D must be Data object.{Fore.RESET}"); return DD
+    if not "spin" in typ:
+        print(f"{Fore.RED}The argument D must be Data object containing (sorted!) spin data.{Fore.RESET}"); return DD
+    #
+    nstd = kwargs.get("nstd", 3)
+    try: nstdv = abs(float(nstd))
+    except:
+        print(f"{Fore.MAGENTA}The argument nstd must be a number. Setting nstd = 3.{Fore.RESET}")
+        nstd = 3
+    #
+    exclude = kwargs.get("exclude", [])
+    if not type(exclude) is list:
+        print(f"{Fore.MAGENTA}The argument exclude must be a list (of integers). Setting exclude = [].{Fore.RESET}"); exclude = []
+    if len(exclude) > 0:
+        exclude_ok = True
+        for item in exclude:
+            if not type(item) is int: exclude_ok = False
+            else:
+                if item >= len(D.parameter0): exclude_ok = False
+        if not exclude_ok:
+            print(f"{Fore.MAGENTA}The argument exclude must be a list of integers (in the range 0 to {len(D.parameter0)-1}). Setting exclude = [].{Fore.RESET}"); exclude = []
+    #
+    if typ == "spin_edc":
+        intensity1 = []     # off, i.e. -1
+        intensity1_indx = []
+        intensity2 = []     # on, i.e. 1
+        intensity2_indx = []
+        parameter0 = []
+        for i, curve in enumerate(D.intensity):  # only include non-excluded curves...
+            if not i in exclude:
+                parameter0.append(D.parameter0[i])
+                if parameter0[-1] == -1:
+                    intensity1.append(curve)
+                    intensity1_indx.append(i)
+                else: 
+                    intensity2.append(curve)
+                    intensity2_indx.append(i)
+        #
+        intensity1, intensity2 = np.array(intensity1).T, np.array(intensity2).T
+        intensity1_, intensity2_ = np.copy(intensity1), np.copy(intensity2)
+        for i in range(0, len(intensity1)):
+            mean1, mean2 = intensity1[i].mean(), intensity2[i].mean()
+            stdv1, stdv2 = intensity1[i].std(), intensity2[i].std()
+            for j, v in enumerate(intensity1[i]):
+                if abs(v-mean1) > nstd * stdv1: 
+                    try: intensity1_[i][j] = (intensity1[i-1][j]+intensity1[i+1][j])/2
+                    except: intensity1_[i][j] = np.NaN                                
+            for j, v in enumerate(intensity2[i]):
+                if abs(v-mean2) > nstd * stdv2: 
+                    try: intensity2_[i][j] = (intensity2[i-1][j]+intensity2[i+1][j])/2
+                    except: intensity2_[i][j] = np.NaN
+        intensity1, intensity2 = np.array(intensity1_).T, np.array(intensity2_).T
+        intensity = []
+        for curve in intensity1: intensity.append(curve)
+        for curve in intensity2: intensity.append(curve)
+        DD.intensity = np.array(intensity)
+        DD.parameter0 = parameter0
+        
+    else:
+        print(f"{Fore.BLUE}I am currently not ready for anything else than EDC.{Fore.RESET}"); return DD
+    #
+    return DD
+    
