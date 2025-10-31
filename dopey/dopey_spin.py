@@ -1,8 +1,9 @@
-__version__ = "25.10.30"
+__version__ = "25.10.31"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 25.10.31    despikeSpin() works properly for EDC, but not well for MDC. Have not looked at Map yet.
 Version 25.10.30    Added a de-spike method but it still not working properly.
 Version 25.10.18    asymmetry(), polarization() 
 Version 25.10.13    Progressing...
@@ -30,175 +31,6 @@ except:
         
 # Target angle:
 TA = np.deg2rad(15)
-
-
-# --------------------------------------------------------------------------
-# --------------------------------------------------------------------------
-# --------------------------------------------------------------------------
-
-
-def quickSpin(D = object, shup = True, **kwargs):
-    """
-    """
-    try:
-        if kwargs.get("help", False):
-            print(f"{Fore.BLUE}Arguments:")
-            print("D           Data object")
-            print("shup        bool")
-            print(Fore.RESET)
-    except: pass
-    #
-    shup = kwargs.get("shup", False)
-    if not type(shup) is bool: shup = False
-    #
-    DD = deepcopy(D)
-    try: typ = DD.data_type
-    except:
-        print(f"{Fore.RED}The argument D must be Data object.{Fore.RESET}"); return DD
-    #
-    if typ == "spin_edc": return quickSpinEDC(D = D, shup = shup, **kwargs)
-    elif typ == "spin_mdc": return quickSpinEDC(D = D, shup = shup, **kwargs)
-    elif typ == "spin_map": return quickSpinMap(D = D, shup = shup, **kwargs)
-    else:
-        print(f"{Fore.MAGENTA}Under construction. So far I'm only ready for spin_edc and spin_mdc."); return D
-    
-    
-
-def quickSpinEDC(D = object, shup = True, **kwargs):
-    """
-    """
-    global SHERMAN
-    try:
-        if kwargs.get("help", False):
-            print(f"{Fore.BLUE}Keyword arguments:")
-            #print(f"sherman     scalar     default {SHERMAN})")
-            print( "exclude     list       list of integers (curve numbers)")
-            print( "normp       integer    normalize for intensity between points normp and normpn")
-            print( "normpn      integer    -''-")
-            print(Fore.RESET)
-    except: pass 
-    #
-    #sherman = kwargs.get("sherman", SHERMAN)
-    #try: sherman = abs(float(sherman))
-    #except:
-    #    print(f"{Fore.RED}The argument sherman must be number. Setting default sherman = {SHERMAN}.{Fore.RESET}")
-    #    sherman = SHERMAN
-    #
-    exclude = kwargs.get("exclude", [])
-    if not type(exclude) is list:
-        print(f"{Fore.RED}The argument exclude must be a list (of integers). Setting exclude = [].{Fore.RESET}"); exclude = []
-    if len(exclude) > 0:
-        exclude_ok = True
-        for item in exclude:
-            if not type(item) is int: exclude_ok = False
-            else:
-                if item >= len(D.parameter0): exclude_ok = False
-        if not exclude_ok:
-            print(f"{Fore.RED}The argument exclude must be a list of integers (in the range 0 to {len(D.parameter0)-1}). Setting exclude = [].{Fore.RESET}"); exclude = []
-    #
-    normp = kwargs.get("normp", 0)
-    normpn = kwargs.get("normpn", 0)
-    if not (type(normp) is int and type(normpn) is int):
-        print(f"{Fore.RED}The arguments normp and normpn must integers. Ignoring them.{Fore.RESET}"); normp, normpn = 0, 0
-    if normpn > 0:
-        if normp < 0 or normp >= len(D.axis0):
-            print(f"{Fore.RED}The argument normp must be in (0, {len(D.axis0)-1}). Setting normp = 0."); normp = 0   # <---
-        if normpn > len(D.axis0) - normp:
-            print(f"{Fore.RED}The argument normpn must be in (1, {len(D.axis0)-normp}). Setting it to default normpn = 1.{Fore.RESET}"); normpn = 1
-    #
-    DD = deepcopy(D)
-    intensity = []
-    intensity1 = []     # off, i.e. -1
-    intensity2 = []     # on, i.e. 1
-    parameter0 = []
-    for i, curve in enumerate(D.intensity):
-        if not i in exclude:
-            if normpn == 0: norm = 1.
-            else: norm = curve[normp:normp+normpn].sum()
-            intensity.append(curve/norm)
-            parameter0.append(D.parameter0[i])
-            if parameter0[-1] == -1: intensity1.append(curve/norm)
-            else: intensity2.append(curve/norm)
-    #
-    intensity1, intensity2 = np.array(intensity1), np.array(intensity2)
-    if len(intensity1) == 0 or len(intensity2) == 0:
-        print(f"{Fore.RED}I can not calculate an asymmetry.{Fore.RESET}"); return DD    
-    DD.intensity = np.array(intensity)
-    DD.parameter0 = parameter0
-    #
-    intensity1, intensity2 = intensity1.sum(axis = 0)/np.shape(intensity1)[0], intensity2.sum(axis = 0)/np.shape(intensity2)[0]
-    DD._addProperty("intensity_off", intensity1)
-    DD._addProperty("intensity_on", intensity2)
-    DD._addProperty("asymmetry", (intensity1-intensity2)/(intensity1+intensity2))
-    #
-    return DD
-
-
-
-def quickSpinMap(D = object, shup = True, **kwargs):
-    """
-    """
-    global SHERMAN
-    try:
-        if kwargs.get("help", False):
-            print(f"{Fore.BLUE}Keyword arguments:")
-            #print(f"sherman     scalar     default {SHERMAN})")
-            print( "exclude     list       list of integers (curve numbers)")
-            print(Fore.RESET)
-    except: pass 
-    #
-    #sherman = kwargs.get("sherman", SHERMAN)
-    #try: sherman = abs(float(sherman))
-    #except:
-    #    print(f"{Fore.RED}The argument sherman must be number. Setting default sherman = {SHERMAN}.{Fore.RESET}")
-    #    sherman = SHERMAN
-    #
-    exclude = kwargs.get("exclude", [])
-    if not type(exclude) is list:
-        print(f"{Fore.RED}The argument exclude must be a list (of integers). Setting exclude = [].{Fore.RESET}"); exclude = []
-    if len(exclude) > 0:
-        exclude_ok = True
-        for item in exclude:
-            if not type(item) is int: exclude_ok = False
-            else:
-                if item >= len(D.parameter0): exclude_ok = False
-        if not exclude_ok:
-            print(f"{Fore.RED}The argument exclude must be a list of integers (in the range 0 to {len(D.parameter0)-1}). Setting exclude = [].{Fore.RESET}"); exclude = []
-    #
-    DD = deepcopy(D)
-    intensity = []
-    intensity1 = []     # off, i.e. -1
-    intensity2 = []     # on, i.e. 1
-    parameter0 = []
-    for i, curve in enumerate(D.intensity):
-        if not i in exclude:
-            #if normpn == 0: norm = 1.
-            #else: norm = curve[normp:normp+normpn].sum()
-            #intensity.append(curve/norm)
-            intensity.append(curve)
-            parameter0.append(D.parameter0[i])
-            #if parameter0[-1] == -1: intensity1.append(curve/norm)
-            #else: intensity2.append(curve/norm)
-            if parameter0[-1] == -1: intensity1.append(curve)
-            else: intensity2.append(curve)
-    #
-    intensity1, intensity2 = np.array(intensity1), np.array(intensity2)
-    if len(intensity1) == 0 or len(intensity2) == 0:
-        print(f"{Fore.RED}I can not calculate an asymmetry.{Fore.RESET}"); return DD    
-    DD.intensity = np.array(intensity)
-    DD.parameter0 = parameter0
-    #
-    intensity1, intensity2 = intensity1.sum(axis = 0)/np.shape(intensity1)[0], intensity2.sum(axis = 0)/np.shape(intensity2)[0]
-    DD._addProperty("intensity_off", intensity1)
-    DD._addProperty("intensity_on", intensity2)
-    DD._addProperty("asymmetry", (intensity1-intensity2)/(intensity1+intensity2))
-    #
-    return DD
-
-
-    
-
-
     
             
         
@@ -209,7 +41,7 @@ def quickSpinMap(D = object, shup = True, **kwargs):
 # =================================================================    
 
 
-def asymmetry(D = object, shup = True, **kwargs):
+def asymmetry(D = object, **kwargs):
     """
     """
     try:
@@ -277,8 +109,6 @@ def asymmetry(D = object, shup = True, **kwargs):
     #
     DD._addProperty("component_plus",  (intensity1 + intensity2) * (1 + DD.asymmetry))
     DD._addProperty("component_minus", (intensity1 + intensity2) * (1 - DD.asymmetry))
-    #
-    
     #
     return DD
         
@@ -496,7 +326,13 @@ def despikeSpin(D = object, **kwargs):
         if kwargs.get("help", False):
             print(f"{Fore.BLUE}Arguments needed:")
             print("  D             spin data object from .load()")
-            print(f"{Fore.BLUE}Keyword arguments:")
+            print("Keyword arguments:")
+            print("  exclude       list of curves to exclude")
+            print("  nstd          number")
+            print("Description:")
+            print("  If the intensity in one point is nstd times higher than the standard deviation")
+            print("  it will be replaced by the average value of the neighbouring points.")
+            print("  Curves from NegativePolarity ON and OFF are treated seperately.")
             print(Fore.RESET)
     except: pass
     #
@@ -505,6 +341,7 @@ def despikeSpin(D = object, **kwargs):
     try: typ = DD.data_type
     except:
         print(f"{Fore.RED}The argument D must be Data object.{Fore.RESET}"); return DD
+    #
     if not "spin" in typ:
         print(f"{Fore.RED}The argument D must be Data object containing (sorted!) spin data.{Fore.RESET}"); return DD
     #
@@ -526,44 +363,46 @@ def despikeSpin(D = object, **kwargs):
         if not exclude_ok:
             print(f"{Fore.MAGENTA}The argument exclude must be a list of integers (in the range 0 to {len(D.parameter0)-1}). Setting exclude = [].{Fore.RESET}"); exclude = []
     #
-    if typ == "spin_edc":
-        intensity1 = []     # off, i.e. -1
-        intensity1_indx = []
-        intensity2 = []     # on, i.e. 1
-        intensity2_indx = []
+    if typ in ["spin_edc", "spin_mdc"]:
+        #
+        if "mdc" in typ: print(f"{Fore.MAGENTA}(I have issues with despiking MDC data which I'm still working on.){Fore.RESET}")
+        #
+        int1 = []     # off, i.e. -1
+        int2 = []     # on, i.e. 1
         parameter0 = []
         for i, curve in enumerate(D.intensity):  # only include non-excluded curves...
             if not i in exclude:
                 parameter0.append(D.parameter0[i])
-                if parameter0[-1] == -1:
-                    intensity1.append(curve)
-                    intensity1_indx.append(i)
-                else: 
-                    intensity2.append(curve)
-                    intensity2_indx.append(i)
+                if parameter0[-1] == -1: int1.append(curve)
+                else: int2.append(curve)
+        int1, int2 = np.array(int1).T, np.array(int2).T
+        int1_, int2_ = np.copy(int1), np.copy(int2)
         #
-        intensity1, intensity2 = np.array(intensity1).T, np.array(intensity2).T
-        intensity1_, intensity2_ = np.copy(intensity1), np.copy(intensity2)
-        for i in range(0, len(intensity1)):
-            mean1, mean2 = intensity1[i].mean(), intensity2[i].mean()
-            stdv1, stdv2 = intensity1[i].std(), intensity2[i].std()
-            for j, v in enumerate(intensity1[i]):
-                if abs(v-mean1) > nstd * stdv1: 
-                    try: intensity1_[i][j] = (intensity1[i-1][j]+intensity1[i+1][j])/2
-                    except: intensity1_[i][j] = np.NaN                                
-            for j, v in enumerate(intensity2[i]):
-                if abs(v-mean2) > nstd * stdv2: 
-                    try: intensity2_[i][j] = (intensity2[i-1][j]+intensity2[i+1][j])/2
-                    except: intensity2_[i][j] = np.NaN
-        intensity1, intensity2 = np.array(intensity1_).T, np.array(intensity2_).T
+        int1m, int2m = int1.mean(axis = 1), int2.mean(axis = 1)
+        int1s, int2s = int1.std(axis = 1), int2.std(axis = 1)
+        for i in range(0, len(int1)):
+            for j in range(0, len(int1[i])):
+                if abs(int1[i][j] - int1m[i]) > nstd * int1s[i]:
+                    if  0 < i and i < len(int1)-2:  int1_[i][j] = 0.5 * (int1[i-1][j] + int1[i+1][j])
+                    elif i == 0: int1_[i][j] = int1[i+1][j]
+                    else: int1_[i][j] = int1[i-1][j]                            
+            for j in range(0, len(int2[i])):
+                if abs(int2[i][j] - int2m[i]) > nstd * int2s[i]:
+                    if  0 < i and i < len(int2)-2:  int2_[i][j] = 0.5 * (int2[i-1][j] + int2[i+1][j])
+                    elif i == 0: int2_[i][j] = int2[i+1][j]
+                    else: int2_[i][j] = int2[i-1][j]        
+        #
         intensity = []
-        for curve in intensity1: intensity.append(curve)
-        for curve in intensity2: intensity.append(curve)
+        for curve in int1_.T: intensity.append(curve)
+        for curve in int2_.T: intensity.append(curve)
         DD.intensity = np.array(intensity)
         DD.parameter0 = parameter0
-        
+    #
+    elif typ == "spin_map":
+        print(f"{Fore.MAGENTA}I have not yet implemented despiking for Map yet.{Fore.RESET}"); return DD
+    #
     else:
-        print(f"{Fore.BLUE}I am currently not ready for anything else than EDC.{Fore.RESET}"); return DD
+        print(f"{Fore.MAGENTA}I only deal with data types spin EDC, MDC, and Map.{Fore.RESET}"); return DD
     #
     return DD
     
