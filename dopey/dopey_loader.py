@@ -1,8 +1,9 @@
-__version__ = "25.10.30"
+__version__ = "25.11.07"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 25.11.07    Added pickleSave() and pickleLoad()
 Version 25.10.16    Small update: added .arrays as a attribute to Data object.
 Version 25.10.16    Progressing...
 Version 25.10.13    Created an "independent" pure data class instead of having one in the loader class (Data())
@@ -15,6 +16,7 @@ from colorama import Fore
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import deepcopy
+import pickle
 
 CCD_ANALYZERS  = ["PhoibosCCD", "AnalyzerCCD"]
 SPIN_ANALYZERS = ["PhoibosSpin"]
@@ -620,3 +622,51 @@ def dataInfo(D = None):
                 t = "List".ljust(15)
                 v = len(item)
                 print(f"{key_name}{t}len = {v}")
+
+
+
+
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------
+
+def pickleSave(D = object, file_name = "file.pickle"):
+    """
+    """
+    try: typ = D.data_type
+    except:
+        print(f"{Fore.MAGENTA}The argument D is not a data object. I'll save it anyway, tho...{Fore.RESET}")
+    try: file_name = str(file_name)
+    except:
+        print(f"{Fore.MAGENTA}The argument file_name must be a string. Setting it to 'file.pickle'.{Fore.RESET}")
+        file_name = "file.pickle"
+    if not file_name[-7:].lower() == ".pickle":
+        print(f"{Fore.MAGENTA}Adding extension .pickle to the file name.{Fore.RESET}")
+        file_name += ".pickle"
+    try:
+        with open(file_name, "wb") as f:
+            pickle.dump(D, f, pickle.HIGHEST_PROTOCOL)
+        print(f"{Fore.BLUE}Saved to file {file_name}{Fore.RESET}")
+    except:
+        print(f"{Fore.RED}Could not save the data to {file_name}{Fore.RESET}")
+
+def pickleLoad(file_name = "file.pickle"):
+    """
+    """
+    try: file_name = str(file_name)
+    except:
+        print(f"{Fore.MAGENTA}The argument file_name must be a string. Setting it to 'file.pickle'.{Fore.RESET}")
+        file_name = "file.pickle"
+    try:
+        with open(file_name, "rb") as f:
+            D = pickle.load(f)
+        print(f"{Fore.BLUE}Loaded {file_name}{Fore.RESET}")
+        try: typ = D.data_type
+        except: typ = ""
+    except:
+        print(f"{Fore.RED}Could not load data from {file_name}{Fore.RESET}")
+        return None
+    if typ != "": print(f"{Fore.BLUE}Data type {typ}{Fore.RESET}")
+    else: print(f"{Fore.BLUE}Unknown data type.{Fore.RESET}")
+    return D

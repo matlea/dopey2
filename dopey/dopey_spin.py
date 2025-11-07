@@ -1,8 +1,9 @@
-__version__ = "25.10.31"
+__version__ = "25.11.07"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 25.11.07    Added despikeSpinManual(). Works for EDC and MDC, will add Map.
 Version 25.10.31    despikeSpin() works properly for EDC, but not well for MDC. Have not looked at Map yet.
 Version 25.10.30    Added a de-spike method but it still not working properly.
 Version 25.10.18    asymmetry(), polarization() 
@@ -15,6 +16,7 @@ Version 25.10.13    The first version.
 import numpy as np
 from copy import deepcopy
 from colorama import Fore
+import matplotlib.pyplot as plt
 
 try: from dopey.dopey_constants import SHERMAN
 except:
@@ -28,6 +30,11 @@ except:
     try: from dopey_loader import _DataObject
     except:
         print(Fore.RED + "dopey_spin.py: coluld not import from dopey_loader.py" + Fore.RESET)
+
+try: 
+    import ipywidgets as ipw
+    from IPython.display import display
+except: print(f"{Fore.RED}{__name__} could not import the ipywidget module and/or display from IPython.display. Some methods will not work.{Fore.RESET}")
         
 # Target angle:
 TA = np.deg2rad(15)
@@ -211,18 +218,7 @@ def polarization(**kwargs):
         D._addProperty("py", py)
         D._addProperty("pz", pz)
         #
-        tot_int = c1rp.intensity_off + c1rp.intensity_on
-        for intensity in [c1rm, c2rp, c2rm]:
-            tot_int += intensity.intensity_off + intensity.intensity_on
-        tot_int /= 8
-        D._addProperty("intensity", tot_int)
-        #
-        D._addProperty("intensity_px_plus", tot_int * (1 + px))
-        D._addProperty("intensity_px_minus", tot_int * (1 - px))
-        D._addProperty("intensity_py_plus", tot_int * (1 + py))
-        D._addProperty("intensity_py_minus", tot_int * (1 - py))
-        D._addProperty("intensity_pz_plus", tot_int * (1 + pz))
-        D._addProperty("intensity_pz_minus", tot_int * (1 - pz))
+        
         
     # Accurately Px, Py
     elif case == 2:
@@ -236,13 +232,7 @@ def polarization(**kwargs):
         D._addProperty("px", px)
         D._addProperty("py", py)
         #
-        tot_int = (c2rp.intensity_off + c2rp.intensity_on + c2rm.intensity_off + c2rm.intensity_on)/4
-        D._addProperty("intensity", tot_int)
-        #
-        D._addProperty("intensity_px_plus", tot_int * (1 + px))
-        D._addProperty("intensity_px_minus", tot_int * (1 - px))
-        D._addProperty("intensity_py_plus", tot_int * (1 + py))
-        D._addProperty("intensity_py_minus", tot_int * (1 - py))
+        
         
     elif case == 3:  # Px and Py, estimating Pz with only one coil1 measurement
         if c1rp_yeah: c1 = deepcopy(c1rp)
@@ -258,19 +248,6 @@ def polarization(**kwargs):
         D._addProperty("px", px)
         D._addProperty("py", py)
         D._addProperty("pz", pz)
-        #
-        tot_int = c1.intensity_off + c1.intensity_on
-        for intensity in [c2rp, c2rm]:
-            tot_int += intensity.intensity_off + intensity.intensity_on
-        tot_int /= 6
-        D._addProperty("intensity", tot_int)
-        #
-        D._addProperty("intensity_px_plus", tot_int * (1 + px))
-        D._addProperty("intensity_px_minus", tot_int * (1 - px))
-        D._addProperty("intensity_py_plus", tot_int * (1 + py))
-        D._addProperty("intensity_py_minus", tot_int * (1 - py))
-        D._addProperty("intensity_pz_plus", tot_int * (1 + pz))
-        D._addProperty("intensity_pz_minus", tot_int * (1 - pz))
         
     
     elif case == 4:  # Pz with two coil1 measurements but no Px compensation
@@ -281,12 +258,6 @@ def polarization(**kwargs):
             D._addProperty("axis1_label", c1rp.axis1_label)
         pz = 1/np.cos(TA) * ( (c1rp.asymmetry + c1rm.asymmetry)/2/sherman )
         D._addProperty("pz", pz)
-        #
-        tot_int = (c1rp.intensity_off + c1rp.intensity_on + c1rm.intensity_off + c1rm.intensity_on)/4
-        D._addProperty("intensity", tot_int)
-        #
-        D._addProperty("intensity_pz_plus", tot_int * (1 + pz))
-        D._addProperty("intensity_pz_minus", tot_int * (1 - pz))
         
     
     elif case == 5:  # Pz with one coil1 measurements and no Px compensation
@@ -308,10 +279,79 @@ def polarization(**kwargs):
     
     else:
         print(f"{Fore.MAGENTA}Something went wrong. Probably sloppy coding.{Fore.RESET}")
+        return None
+    #
+    #polar = kwargs.get("polar", 0)
+    #try: polar = float(polar)
+    #except:
+    #    polar = 0
+    #    print(f"{Fore.MAGENTA}The argument polar must be a number. Setting it to 0.{Fore.RESET}")
+    
+    #if not polar == 0:
+    #    polarr = np.deg2rad(polar)
+    #    if case in [1,3]:
+    #        p1, p2, p3 = D.pz, D.px, D.py
+    #        P1 = p1 * np.cos(polarr) - p2 * np.sin(polarr)
+    #        P2 = p1 * np.sin(polarr) + p2 * np.cos(polarr)
+    #        P3 = p3 # not rotated by the polar angle
+    #        D.px, D.py, D.pz = P2, 
+    #        
+    #        p1, p2, p3 = np.copy(pz), np.copy(px), np.copy(py)
+    #        P1 = p1 * np.cos(angle) - p2 * np.sin(angle)
+    #        P2 = p1 * np.sin(angle) + p2 * np.cos(angle)
+    #        P3 = p3 # not rotated by the polar angle
+    
+    if case == 1:
+        tot_int = c1rp.intensity_off + c1rp.intensity_on
+        for intensity in [c1rm, c2rp, c2rm]:
+            tot_int += intensity.intensity_off + intensity.intensity_on
+        tot_int /= 8
+        D._addProperty("intensity", tot_int)
+        #
+        D._addProperty("intensity_px_plus", tot_int * (1 + px))
+        D._addProperty("intensity_px_minus", tot_int * (1 - px))
+        D._addProperty("intensity_py_plus", tot_int * (1 + py))
+        D._addProperty("intensity_py_minus", tot_int * (1 - py))
+        D._addProperty("intensity_pz_plus", tot_int * (1 + pz))
+        D._addProperty("intensity_pz_minus", tot_int * (1 - pz))
+    elif case == 2:
+        tot_int = (c2rp.intensity_off + c2rp.intensity_on + c2rm.intensity_off + c2rm.intensity_on)/4
+        D._addProperty("intensity", tot_int)
+        #
+        D._addProperty("intensity_px_plus", tot_int * (1 + px))
+        D._addProperty("intensity_px_minus", tot_int * (1 - px))
+        D._addProperty("intensity_py_plus", tot_int * (1 + py))
+        D._addProperty("intensity_py_minus", tot_int * (1 - py))
+    elif case == 3:
+        tot_int = c1.intensity_off + c1.intensity_on
+        for intensity in [c2rp, c2rm]:
+            tot_int += intensity.intensity_off + intensity.intensity_on
+        tot_int /= 6
+        D._addProperty("intensity", tot_int)
+        #
+        D._addProperty("intensity_px_plus", tot_int * (1 + px))
+        D._addProperty("intensity_px_minus", tot_int * (1 - px))
+        D._addProperty("intensity_py_plus", tot_int * (1 + py))
+        D._addProperty("intensity_py_minus", tot_int * (1 - py))
+        D._addProperty("intensity_pz_plus", tot_int * (1 + pz))
+        D._addProperty("intensity_pz_minus", tot_int * (1 - pz))
+    elif case == 4:
+        tot_int = (c1rp.intensity_off + c1rp.intensity_on + c1rm.intensity_off + c1rm.intensity_on)/4
+        D._addProperty("intensity", tot_int)
+        #
+        D._addProperty("intensity_pz_plus", tot_int * (1 + pz))
+        D._addProperty("intensity_pz_minus", tot_int * (1 - pz))
+    elif case == 5:
+        tot_int = (c1rp.intensity_off + c1rp.intensity_on + c1rm.intensity_off + c1rm.intensity_on)/4
+        D._addProperty("intensity", tot_int)
+        #
+        D._addProperty("intensity_pz_plus", tot_int * (1 + pz))
+        D._addProperty("intensity_pz_minus", tot_int * (1 - pz))
+        
+        
     #
     return D
-        
-        
+            
     
     
     
@@ -405,4 +445,98 @@ def despikeSpin(D = object, **kwargs):
         print(f"{Fore.MAGENTA}I only deal with data types spin EDC, MDC, and Map.{Fore.RESET}"); return DD
     #
     return DD
+    
+
+
+
+
+
+
+# =================================================================    
+# =================================================================    
+# ================================================================= 
+
+
+def despikeSpinManual(D = object, **kwargs):
+    """
+    """
+    print(f"{Fore.MAGENTA}Note: There's an issue with the plot being duplicated. Try to ignore it for now.{Fore.RESET}")
+    try:
+        if kwargs.get("help", False):
+            print(f"{Fore.BLUE}Arguments needed:")
+            print("  D             spin data object from .load()")
+            print("Keyword arguments:")
+            print("  none")
+            print("Description:")
+            print("  Manually remove spikes in the data. Works for spin EDC and MDC, Map will be added.")
+            print("  After despiking, save the data with pickleSave(). Use pickleLoad() to load it.")
+            print(Fore.RESET)
+            print(f"{Fore.MAGENTA}Note: There's sometimes an issue with the plot being duplicated...{Fore.RESET}")
+    except: pass
+    #
+    DD = deepcopy(D)
+    #
+    try: typ = DD.data_type
+    except:
+        print(f"{Fore.RED}The argument D must be Data object.{Fore.RESET}"); return DD
+    #
+    if not "spin" in typ:
+        print(f"{Fore.RED}The argument D must be Data object containing (sorted!) spin data.{Fore.RESET}"); return DD
+    #
+    if "edc" in typ:  _despikeSpinManualEDC(D = D, **kwargs)
+    elif "mdc" in typ:  _despikeSpinManualEDC(D = D, **kwargs)
+    else:
+        print(f"{Fore.MAGENTA}Works for EDC and MDC, not yet Map...{Fore.RESET}"); return DD
+
+
+def _despikeSpinManualEDC(D = object, **kwargs):
+    """
+    """
+    DD = deepcopy(D)
+    num_curves = len(D.intensity)-1
+    num_points = len(D.intensity.T)-1
+    Slider_curve = ipw.IntSlider(min=0, max=num_curves, step = 1, description = 'Curve', value = 0)
+    Slider_point = ipw.IntSlider(min=0, max=num_points, step = 1, description = 'Point', value = 0)
+    Slider_intensity = ipw.IntSlider(min=0, max=200, step = 1, description = 'Int.', value = 100)
+    
+    Button_next = ipw.Button(description = "Next")
+    def on_button_clicked(b):
+        Slider_point.value = 0
+        Slider_intensity.value = 100
+    Button_next.on_click(on_button_clicked)
+    
+    Button_done = ipw.Button(description = "Done")
+    def on_button_clicked2(b):
+        Slider_curve.disabled = True
+        Slider_point.disabled = True
+        Slider_intensity.disabled = True
+        Button_next.disabled = True
+        Button_done.disabled = True
+    Button_done.on_click(on_button_clicked2)
+    
+    def plot(CURVE, POINT, INTENSITY):
+        fig, ax = plt.subplots(figsize = (6,3))
+        if not INTENSITY == 100: disabled = True
+        else: disabled = False 
+        Slider_curve.disabled = disabled
+        Slider_point.disabled = disabled
+        #
+        D.intensity[CURVE][POINT] = INTENSITY/100 * DD.intensity[CURVE][POINT]
+        ax.plot(D.axis0, DD.intensity[CURVE], linewidth = 0.6, linestyle = "--", color = "blue")
+        ax.plot(D.axis0, D.intensity[CURVE], linewidth = 0.6, linestyle = "-", color = "red")
+        ax.axvline(x = D.axis0[POINT], linewidth = 0.6, linestyle = ":", color = "k")
+        ax.scatter(D.axis0[POINT], D.intensity[CURVE][POINT], marker = "x", color = "red")
+        ax.set_title(f"curve {CURVE}, polarity {D.parameter0[CURVE]}", fontsize = 10)
+        fig.tight_layout()
+        
+    Interact = ipw.interactive_output(plot, {'CURVE': Slider_curve, 
+                                             'POINT': Slider_point,
+                                             'INTENSITY': Slider_intensity})
+    
+    widget_box = ipw.VBox([Slider_curve, Slider_point, Slider_intensity, Button_next, Button_done])
+    box_out = ipw.HBox([Interact, widget_box])
+    box_out.layout = ipw.Layout(border="solid 1px gray", margin="5px", padding="2")
+    display(box_out)
+                                      
+    
     
