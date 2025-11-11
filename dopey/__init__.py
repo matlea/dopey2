@@ -35,6 +35,11 @@ try:
     print(f"  {Fore.BLUE}{'dopey_methods':<25}({dopey_methods.__version__}){Fore.RESET}")
 except Exception as E: 
     print(f"  {Fore.RED}{'dopey_methods':<25}{Fore.RESET}"); import_errors.append(E) 
+try: 
+    from dopey.dopey_extra import *
+    print(f"  {Fore.BLUE}{'dopey_extra':<25}({dopey_extra.__version__}){Fore.RESET}")
+except Exception as E: 
+    print(f"  {Fore.RED}{'dopey_extra':<25}{Fore.RESET}"); import_errors.append(E) 
 
 
 if len(import_errors) > 0:
