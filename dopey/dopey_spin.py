@@ -17,6 +17,7 @@ import numpy as np
 from copy import deepcopy
 from colorama import Fore
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 
 try: from dopey.dopey_constants import SHERMAN
 except:
@@ -352,7 +353,100 @@ def polarization(**kwargs):
     #
     return D
             
+
+
+
+# =================================================================    
+# =================================================================    
+# ================================================================= 
+
+def polarCompensation(D = object, polar = 0, **kwargs):
+    """
     
+    """
+    print(f"\n{Fore.RED}UNDER CONSTRUCTION! Don't use it yet...{Fore.RESET}\n")
+    #
+    DD = deepcopy(D)
+    #
+    try: typ = DD.data_type
+    except:
+        print(f"{Fore.RED}The argument D must be Data object.{Fore.RESET}"); return DD
+    #
+    if not "spin_polarization" in typ:
+        print(f"{Fore.RED}The argument D must be Data object from polarization().{Fore.RESET}"); return DD
+    #
+    existingAttributes = DD.listAttributes()
+    if "px" in existingAttributes and "py" in existingAttributes and "pz" in existingAttributes: case = "xyz"
+    elif "px" in existingAttributes and "py" in existingAttributes and not "pz" in existingAttributes: case = "xy"
+    elif "pz" in existingAttributes: case = "z"
+    else:
+        print(f"{Fore.RED}Something went wrong.{Fore.RESET}"); return DD
+    #
+    if "axis0" in existingAttributes and not "axis1" in existingAttributes: dim = 1
+    elif "axis0" in existingAttributes and "axis1" in existingAttributes: dim = 2
+    else:
+        print(f"{Fore.RED}Something went wrong.{Fore.RESET}"); return DD
+    #
+    try: polar = float(polar)
+    except:
+        print(f"{Fore.RED}The argument polar must be a scalar (deg.).{Fore.RESET}"); return DD
+    #
+    # sample at normal emission - vectors
+    v1, v2 = np.array([1,0,0]), np.array([0,1,0])   # defining the sample plane
+    vn = np.cross(v1,v2)                            # sample normal at normal emission
+    un = rotY(angle = polar).dot(vn)
+    #
+    if case == "xyz" :
+        #P - P.dot(un)/np.sqrt(un[0]**2 + un[1]**2 + un[2]**2)**2 * un
+        for i in range(len(DD.axis0)): pass
+
+
+
+
+def rotX(angle = 0):
+    """
+    Returns a rotation matrix (around the x-axis). Argument angle in deg.
+    """
+    try: angler = np.deg2rad(angle)
+    except:
+        print(f"{Fore.RED}The attribute angle must be a number (deg.).")
+        return np.array([1,0,0],[0,1,0],[0,0,1])
+    return np.array([[1, 0,               0],
+                     [0, np.cos(angler), -np.sin(angler)],
+                     [0, np.sin(angler),  np.cos(angler)]])
+
+def rotY(angle = 0):
+    """
+    Returns a rotation matrix (around the y-axis). Argument angle in deg.
+    """
+    try: angler = np.deg2rad(angle)
+    except:
+        print(f"{Fore.RED}The attribute angle must be a number (deg.).")
+        return np.array([1,0,0],[0,1,0],[0,0,1])
+    return np.array([[ np.cos(angler), 0,  np.sin(angler)],
+                     [ 0,              1,  0],
+                     [-np.sin(angler), 0,  np.cos(angler)]])
+    
+def rotZ(angle = 0):
+    """
+    Returns a rotation matrix (around the z-axis). Argument angle in deg.
+    """
+    try: angler = np.deg2rad(angle)
+    except:
+        print(f"{Fore.RED}The attribute angle must be a number (deg.).")
+        return np.array([1,0,0],[0,1,0],[0,0,1])
+    return np.array([[ np.cos(angler), -np.sin(angler), 0],
+                     [ np.sin(angler),  np.cos(angler), 0],
+                     [ 0,               0,              1]])
+        
+        
+    
+    
+    
+
+
+
+
     
     
 # =================================================================    
@@ -385,11 +479,12 @@ def despikeSpin(D = object, **kwargs):
     if not "spin" in typ:
         print(f"{Fore.RED}The argument D must be Data object containing (sorted!) spin data.{Fore.RESET}"); return DD
     #
-    nstd = kwargs.get("nstd", 3)
-    try: nstdv = abs(float(nstd))
+    n_std_p = kwargs.get("n_std_p", 2)
+    n_std_n = kwargs.get("n_std_n", 2)
+    try: n_std_p, n_std_n = float(n_std_p), float(n_std_n)
     except:
-        print(f"{Fore.MAGENTA}The argument nstd must be a number. Setting nstd = 3.{Fore.RESET}")
-        nstd = 3
+        n_std_p, n_std_n = 2., 2.
+        print(f"{Fore.MAGENTA}The arguments n_std_p and n_std_n must be numbers. Setting n_std_p = n_std_n = 2.{Fore.RESET}")
     #
     exclude = kwargs.get("exclude", [])
     if not type(exclude) is list:
@@ -409,12 +504,14 @@ def despikeSpin(D = object, **kwargs):
         #
         int1 = []     # off, i.e. -1
         int2 = []     # on, i.e. 1
-        parameter0 = []
+        parameter0_1 = []
+        parameter0_2 = []
         for i, curve in enumerate(D.intensity):  # only include non-excluded curves...
             if not i in exclude:
-                parameter0.append(D.parameter0[i])
-                if parameter0[-1] == -1: int1.append(curve)
-                else: int2.append(curve)
+                if D.parameter0[i] == -1: 
+                    int1.append(curve); parameter0_1.append(-1)
+                else: 
+                    int2.append(curve); parameter0_2.append(1)
         int1, int2 = np.array(int1).T, np.array(int2).T
         int1_, int2_ = np.copy(int1), np.copy(int2)
         #
@@ -422,12 +519,12 @@ def despikeSpin(D = object, **kwargs):
         int1s, int2s = int1.std(axis = 1), int2.std(axis = 1)
         for i in range(0, len(int1)):
             for j in range(0, len(int1[i])):
-                if abs(int1[i][j] - int1m[i]) > nstd * int1s[i]:
+                if abs(int1[i][j] - int1m[i]) > n_std_n * int1s[i]:
                     if  0 < i and i < len(int1)-2:  int1_[i][j] = 0.5 * (int1[i-1][j] + int1[i+1][j])
                     elif i == 0: int1_[i][j] = int1[i+1][j]
                     else: int1_[i][j] = int1[i-1][j]                            
             for j in range(0, len(int2[i])):
-                if abs(int2[i][j] - int2m[i]) > nstd * int2s[i]:
+                if abs(int2[i][j] - int2m[i]) > n_std_p * int2s[i]:
                     if  0 < i and i < len(int2)-2:  int2_[i][j] = 0.5 * (int2[i-1][j] + int2[i+1][j])
                     elif i == 0: int2_[i][j] = int2[i+1][j]
                     else: int2_[i][j] = int2[i-1][j]        
@@ -436,10 +533,62 @@ def despikeSpin(D = object, **kwargs):
         for curve in int1_.T: intensity.append(curve)
         for curve in int2_.T: intensity.append(curve)
         DD.intensity = np.array(intensity)
-        DD.parameter0 = parameter0
+        DD.parameter0 = np.concatenate([parameter0_1, parameter0_2])
     #
     elif typ == "spin_map":
-        print(f"{Fore.MAGENTA}I have not yet implemented despiking for Map yet.{Fore.RESET}"); return DD
+        #
+        int1 = []     # off, i.e. -1
+        int2 = []     # on, i.e. 1
+        parameter0_1 = []
+        parameter0_2 = []
+        for i, map in enumerate(D.intensity):  # only include non-excluded curves...
+            if not i in exclude:
+                if D.parameter0[i] == -1:
+                    int1.append(map); parameter0_1.append(-1)
+                else: 
+                    int2.append(map); parameter0_2.append(1)
+        int1, int2 = np.array(int1), np.array(int2)
+        int1_, int2_ = np.copy(int1), np.copy(int2)
+        #
+        int1m, int2m = int1.mean(axis = 0), int2.mean(axis = 0)
+        int1s, int2s = int1.std(axis = 0), int2.std(axis = 0)
+        debug = kwargs.get("debug", False)
+        if debug:
+            fig, ax = plt.subplots(nrows = 2, ncols = 2, figsize = (6,6))
+            ims = ax[0][0].imshow(int1m.T); plt.colorbar(ims)
+            ims = ax[1][0].imshow(int2m.T); plt.colorbar(ims)
+            ims = ax[0][1].imshow(int1s.T); plt.colorbar(ims)
+            ims = ax[1][1].imshow(int2s.T); plt.colorbar(ims)
+            fig.tight_layout()
+        #
+        c,cc = 0,0
+        shp = np.shape(int1)
+        for i in range(0,shp[1]):
+            for j in range(0,shp[2]):
+                for k in range(0,shp[0]):
+                    c+=1
+                    if abs(int1[k][i][j] - int1m[i][j]) > n_std_n * int1s[i][j]:
+                        cc+=1
+                        int1_[k][i][j] = 0
+        print(f"{c = }, {cc = }")
+        #
+        c,cc = 0,0
+        shp = np.shape(int2)
+        for i in range(0,shp[1]):
+            for j in range(0,shp[2]):
+                for k in range(0,shp[0]):
+                    c+=1
+                    if abs(int2[k][i][j] - int2m[i][j]) > n_std_p * int2s[i][j]:
+                        cc+=1
+                        int2_[k][i][j] = 0
+        print(f"{c = }, {cc = }")
+        #
+        intensity = []
+        for map in int1_: intensity.append(map)
+        for map in int2_: intensity.append(map)
+        DD.intensity = np.array(intensity)
+        DD.parameter0 = np.concatenate([parameter0_1, parameter0_2])
+                    
     #
     else:
         print(f"{Fore.MAGENTA}I only deal with data types spin EDC, MDC, and Map.{Fore.RESET}"); return DD
@@ -460,7 +609,7 @@ def despikeSpin(D = object, **kwargs):
 def despikeSpinManual(D = object, **kwargs):
     """
     """
-    print(f"{Fore.MAGENTA}Note: There's an issue with the plot being duplicated. Try to ignore it for now.{Fore.RESET}")
+    print(f"{Fore.MAGENTA}Note: There's occationally an issue with the plot being duplicated. Try to ignore it for now.{Fore.RESET}")
     try:
         if kwargs.get("help", False):
             print(f"{Fore.BLUE}Arguments needed:")
@@ -468,10 +617,9 @@ def despikeSpinManual(D = object, **kwargs):
             print("Keyword arguments:")
             print("  none")
             print("Description:")
-            print("  Manually remove spikes in the data. Works for spin EDC and MDC, Map will be added.")
+            print("  Manually remove spikes in the data. Works for spin EDC, MDC, and Map.")
             print("  After despiking, save the data with pickleSave(). Use pickleLoad() to load it.")
             print(Fore.RESET)
-            print(f"{Fore.MAGENTA}Note: There's sometimes an issue with the plot being duplicated...{Fore.RESET}")
     except: pass
     #
     DD = deepcopy(D)
@@ -485,8 +633,9 @@ def despikeSpinManual(D = object, **kwargs):
     #
     if "edc" in typ:  _despikeSpinManualEDC(D = D, **kwargs)
     elif "mdc" in typ:  _despikeSpinManualEDC(D = D, **kwargs)
+    elif "map" in typ: _despikeSpinManualMap(D = D, **kwargs)
     else:
-        print(f"{Fore.MAGENTA}Works for EDC and MDC, not yet Map...{Fore.RESET}"); return DD
+        print(f"{Fore.MAGENTA}Works for EDC, MDC, and Map...{Fore.RESET}"); return DD
 
 
 def _despikeSpinManualEDC(D = object, **kwargs):
@@ -538,5 +687,80 @@ def _despikeSpinManualEDC(D = object, **kwargs):
     box_out.layout = ipw.Layout(border="solid 1px gray", margin="5px", padding="2")
     display(box_out)
                                       
+    
+
+
+def _despikeSpinManualMap(D = object, **kwargs):
+    """
+    """
+    #   
+    DD = deepcopy(D)
+    #
+    cmap = kwargs.get("cmap", "rainbow")
+    figsize = kwargs.get("figsize", (8,3))
+    #
+    num_maps = len(D.intensity)-1
+    num_defl1 = len(D.axis0)-1
+    num_defl2 = len(D.axis1)-1
+    Slider_map = ipw.IntSlider(min=0, max=num_maps, step = 1, description = 'Map', value = 0)
+    Slider_defl1 = ipw.IntSlider(min=0, max=num_defl1, step = 1, description = f'defl1', value = 0)
+    Slider_defl2 = ipw.IntSlider(min=0, max=num_defl2, step = 1, description = f'defl2', value = 0)
+    Slider_intensity = ipw.IntSlider(min=0, max=200, step = 1, description = 'Intensity', value = 100)
+    
+    Button_next = ipw.Button(description = "Next")
+    def on_button_clicked(b):
+        Slider_defl1.value = 0
+        Slider_defl2.value = 0
+        Slider_intensity.value = 100
+    Button_next.on_click(on_button_clicked)
+    
+    Button_done = ipw.Button(description = "Done")
+    def on_button_clicked2(b):
+        Slider_map.disabled = True
+        Slider_defl1.disabled = True
+        Slider_defl2.disabled = True
+        Slider_intensity.disabled = True
+        Button_next.disabled = True
+        Button_done.disabled = True
+    Button_done.on_click(on_button_clicked2)
+    
+    def plot(MAP, DEFL1, DEFL2, INTENSITY):
+        fig, ax = plt.figure(figsize = figsize), []
+        gs = gridspec.GridSpec(2, 3)
+        ax.append(fig.add_subplot(gs[0:2, 0]))
+        ax.append(fig.add_subplot(gs[0:2, 1]))
+        ax.append(fig.add_subplot(gs[0, 2]))
+        ax.append(fig.add_subplot(gs[1, 2]))
+        
+        if not INTENSITY == 100: disabled = True
+        else: disabled = False 
+        Slider_map.disabled = disabled
+        Slider_defl1.disabled = disabled
+        Slider_defl1.disabled = disabled
+        #
+        D.intensity[MAP][DEFL1][DEFL2] = INTENSITY/100 * DD.intensity[MAP][DEFL1][DEFL2]
+        ims0 = ax[0].imshow(DD.intensity[MAP].T, cmap = cmap, aspect = "auto")
+        ims1 = ax[1].imshow(D.intensity[MAP].T,  cmap = cmap, aspect = "auto")
+        for i in [0,1]:
+            ax[i].axhline(y = DEFL2, linewidth = 0.75, linestyle = "-", color = "blue")
+            ax[i].axvline(x = DEFL1, linewidth = 0.75, linestyle = "-", color = "red")
+        ax[2].plot(D.intensity[MAP].T[DEFL2], color = "blue", linewidth = 0.75)
+        ax[3].plot(D.intensity[MAP][DEFL1],   color = "red",  linewidth = 0.75)
+        for i in [2,3]: ax[i].set_yticks([])
+        ax[2].axvline(x = DEFL1, linewidth = 0.75, color = "k")
+        ax[3].axvline(x = DEFL2, linewidth = 0.75, color = "k")
+        
+        for i, txt in enumerate(["original", "edited", "horizontal profile", "vertical profile"]): ax[i].set_title(txt, fontsize = 9)
+        fig.tight_layout()
+        
+    Interact = ipw.interactive_output(plot, {'MAP': Slider_map, 
+                                             'DEFL1': Slider_defl1,
+                                             'DEFL2': Slider_defl2,
+                                             'INTENSITY': Slider_intensity})
+    
+    widget_box = ipw.VBox([Slider_map, Slider_defl1, Slider_defl2, Slider_intensity, Button_next, Button_done])
+    box_out = ipw.HBox([Interact, widget_box])
+    box_out.layout = ipw.Layout(border="solid 1px gray", margin="5px", padding="2")
+    display(box_out)
     
     
