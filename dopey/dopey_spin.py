@@ -1,8 +1,10 @@
-__version__ = "25.11.07"
+__version__ = "25.11.16"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 25.11.16    Added projectSpin(). Needs to be verified.
+Version 25.11.14    despikeSinManual() works for Map as well (so EDC, MDC, and Map).
 Version 25.11.07    Added despikeSpinManual(). Works for EDC and MDC, will add Map.
 Version 25.10.31    despikeSpin() works properly for EDC, but not well for MDC. Have not looked at Map yet.
 Version 25.10.30    Added a de-spike method but it still not working properly.
@@ -356,15 +358,18 @@ def polarization(**kwargs):
 
 
 
-# =================================================================    
-# =================================================================    
-# ================================================================= 
 
-def polarCompensation(D = object, polar = 0, **kwargs):
+# ==================================================================================================================
+# ==================================================================================================================
+# ==================================================================================================================
+
+
+
+def projectSpin(D = object, tilt = 0, polar = 0, azimuth = 0, **kwargs):
     """
     
     """
-    print(f"\n{Fore.RED}UNDER CONSTRUCTION! Don't use it yet...{Fore.RESET}\n")
+    print(f"\n{Fore.RED}UNDER CONSTRUCTION! Use it with caution...{Fore.RESET}\n")
     #
     DD = deepcopy(D)
     #
@@ -374,31 +379,86 @@ def polarCompensation(D = object, polar = 0, **kwargs):
     #
     if not "spin_polarization" in typ:
         print(f"{Fore.RED}The argument D must be Data object from polarization().{Fore.RESET}"); return DD
-    #
+    # -----------------------------------
     existingAttributes = DD.listAttributes()
     if "px" in existingAttributes and "py" in existingAttributes and "pz" in existingAttributes: case = "xyz"
     elif "px" in existingAttributes and "py" in existingAttributes and not "pz" in existingAttributes: case = "xy"
     elif "pz" in existingAttributes: case = "z"
     else:
         print(f"{Fore.RED}Something went wrong.{Fore.RESET}"); return DD
-    #
+    if case == "xyz":
+        print(f"{Fore.BLUE}The data contains values for Px, Py, and Pz (assuming lab frame).\nThese values will be projected onto the sample surface.{Fore.RESET}")
+    elif case == "xy":
+        print(f"{Fore.BLUE}The data contains values for Px and Py (assuming lab frame).\These values will be projected onto the sample surface,\n while assuming that there is no Pz in the sample.{Fore.RESET}")
+    elif case == "z":
+        print(f"{Fore.BLUE}The data contains values for Pz (assuming lab frame).\These values will be projected onto the sample surface,\n while assuming that there is no Px or Py in the sample.{Fore.RESET}")
+
+    # -----------------------------------
     if "axis0" in existingAttributes and not "axis1" in existingAttributes: dim = 1
     elif "axis0" in existingAttributes and "axis1" in existingAttributes: dim = 2
     else:
         print(f"{Fore.RED}Something went wrong.{Fore.RESET}"); return DD
     #
-    try: polar = float(polar)
+    try: tilt, polar, azimuth = float(tilt), float(polar), float(azimuth)
     except:
-        print(f"{Fore.RED}The argument polar must be a scalar (deg.).{Fore.RESET}"); return DD
+        print(f"{Fore.RED}The arguments tilt, polar, and azimuth must be scalars (deg.).{Fore.RESET}"); return DD
+    if not azimuth == 0:
+        azimuth = 0
+        print(f"{Fore.MAGENTA}For the moment, for various reasons, I have disabled the azimuth. Setting azimuth = 0.{Fore.RESET}")
     #
-    # sample at normal emission - vectors
-    v1, v2 = np.array([1,0,0]), np.array([0,1,0])   # defining the sample plane
-    vn = np.cross(v1,v2)                            # sample normal at normal emission
-    un = rotY(angle = polar).dot(vn)
+    # -----
+    # u and are the vectors defining the sample in normal emission
+    u, v = np.array([1.,0.,0.]), np.array([0.,1.,0.])
+    # uu and vv are the vectors defining the sample after rotation(s)
+    uu, vv = rotX(tilt).dot(u),     rotX(tilt).dot(v)     # tilt
+    uu, vv = rotY(polar).dot(uu),   rotY(polar).dot(vv)   # polar
+    uu, vv = rotZ(azimuth).dot(uu), rotZ(azimuth).dot(vv) # azimuth
+    # ww is the sample normal after rotation
+    ww = np.cross(uu, vv)
+    # 
     #
     if case == "xyz" :
-        #P - P.dot(un)/np.sqrt(un[0]**2 + un[1]**2 + un[2]**2)**2 * un
-        for i in range(len(DD.axis0)): pass
+        if dim == 1:
+            px = np.zeros([len(DD.axis0)]); py, pz = np.copy(px), np.copy(px)
+            for i in range(len(DD.axis0)):
+                p = np.array([D.px[i], D.py[i], D.pz[i]])           # p-vector in on point (Ek or deflector)
+                px[i] = np.linalg.norm( projAonB(a = p, b = uu) )   # the size of that vector projected to sample-x
+                py[i] = np.linalg.norm( projAonB(a = p, b = vv) )   # the size of that vector projected to sample-y
+                pz[i] = np.linalg.norm( projAonB(a = p, b = ww) )   # the size of that vector projected to sample-z
+        elif dim == 2:
+            px = np.zeros([len(DD.axis0), len(DD.axis1)]); py, pz = np.copy(px), np.copy(px)
+            for i in range(len(DD.axis0)):
+                for j in range(DD.axis1):
+                    p = np.array([D.px[i,j], D.py[i,j], D.pz[i,j]])
+                    px[i,j] = np.linalg.norm( projAonB(a = p, b = uu) )
+                    py[i,j] = np.linalg.norm( projAonB(a = p, b = vv) )
+                    pz[i,j] = np.linalg.norm( projAonB(a = p, b = ww) )
+        DD.px, DD.py, DD.pz = px, py, pz
+        DD.intensity_px_plus =  D.intensity * (1+px)
+        DD.intensity_px_minus = D.intensity * (1-px)
+        DD.intensity_py_plus =  D.intensity * (1+py)
+        DD.intensity_py_minus = D.intensity * (1-py)
+        DD.intensity_pz_plus =  D.intensity * (1+pz)
+        DD.intensity_pz_minus = D.intensity * (1-pz)
+    #
+    elif case == "xy":
+        # In this case, the user has chosen to not measure Pz, assuming that it is zero in the sample.
+        # The projections (x and y) onto the sample are thus
+        DD.px /= np.cos(np.deg2rad(polar))
+        DD.py /= np.cos(np.deg2rad(tilt))
+        DD.intensity_px_plus =  D.intensity * (1+DD.px)
+        DD.intensity_px_minus = D.intensity * (1-DD.px)
+        DD.intensity_py_plus =  D.intensity * (1+DD.py)
+        DD.intensity_py_minus = D.intensity * (1-DD.py)
+    #
+    elif case == "z":
+        # In this case, the user has chosen to only measure Pz, assuming that Px and Py are zero in the sample.
+        # The projection of Pz onto the sample is thus
+        DD.pz = DD.pz / np.cos(np.deg2rad(polar)) / np.cos(np.deg2rad(tilt))
+        DD.intensity_pz_plus =  D.intensity * (1+DD.pz)
+        DD.intensity_pz_minus = D.intensity * (1-DD.pz)
+    #
+    return DD
 
 
 
@@ -440,7 +500,17 @@ def rotZ(angle = 0):
                      [ 0,               0,              1]])
         
         
-    
+def projAonB(a = np.array([1,0,0]), b = np.array([0,0,1])):
+    """
+    Returns the projection of vector a on vector b.
+    Arguments a and b must be vectors of size 3.
+    """
+    try: a, b = np.array(a), np.array(b)
+    except:
+        print(f"{Fore.RED}The attributes a and b must be vectores of size 3."); return np.array([0,0,0])
+    if not len(a) == 3 and len(b) == 3:
+        print(f"{Fore.RED}The attributes a and b must be vectores of size 3."); return np.array([0,0,0])
+    return a.dot(b) / b.dot(b) * b
     
     
 
@@ -449,9 +519,10 @@ def rotZ(angle = 0):
 
     
     
-# =================================================================    
-# =================================================================    
-# ================================================================= 
+# ==================================================================================================================
+# ==================================================================================================================
+# ==================================================================================================================
+
 
 def despikeSpin(D = object, **kwargs):
     """
@@ -601,9 +672,9 @@ def despikeSpin(D = object, **kwargs):
 
 
 
-# =================================================================    
-# =================================================================    
-# ================================================================= 
+# ==================================================================================================================
+# ==================================================================================================================
+# ==================================================================================================================
 
 
 def despikeSpinManual(D = object, **kwargs):
