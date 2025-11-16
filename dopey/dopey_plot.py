@@ -3,6 +3,7 @@ __author__  = "Mats Leandersson"
 
 
 """
+Version 25.11.16    Minor bugfix.
 Version 25.10.30    Small update to plot component intensities for asymmetry data.
 Version 25.10.20    Added fermi map viewer, not ready but can be used
 Version 25.10.18    Plots asymmetry(), polarization() 
@@ -378,7 +379,6 @@ def _plot_data_spin_polarization(D = object, ax = None, **kwargs):
             ax[2][i].set_xlabel(D.axis0_label, fontsize = 9)
         
         
-        
     elif fig_type == "xy" and dim == 1:
         fig, ax = plt.subplots(nrows = 2, ncols = 3, figsize = (9,4.8))
         for i in [0,1]: ax[i][0].plot(D.axis0, D.intensity, linewidth = 0.7, color = "k", )
@@ -418,7 +418,6 @@ def _plot_data_spin_polarization(D = object, ax = None, **kwargs):
         for i in [0,1,2]: ax[1][i].set_xlabel(D.axis0_label, fontsize = 9)
     
     
-    
     elif fig_type == "z" and dim == 1:
         fig, ax = plt.subplots(nrows = 1, ncols = 3, figsize = (9,2.4))
         ax[0].plot(D.axis0, D.intensity, linewidth = 0.7, color = "k", )
@@ -440,7 +439,6 @@ def _plot_data_spin_polarization(D = object, ax = None, **kwargs):
         ax[2].set_title("Pz-components", fontsize = 10);     ax[2].set_ylabel("Intensity, a.u.", fontsize = 9)
         
         for i in [0,1,2]: ax[i].set_xlabel(D.axis0_label, fontsize = 9)
-    
     
     
     elif fig_type == "xyz" and dim == 2:
@@ -473,7 +471,6 @@ def _plot_data_spin_polarization(D = object, ax = None, **kwargs):
         for i, txt in zip ([0, 1], ["Px", "Py", "Pz"]):
             for j in [1,2,3]: ax[i][j].set_title(f"{txt}{ax[i][j].get_title()}", fontsize = 10)
             
-            
     
     elif fig_type == "xy" and dim == 2:
         fig, ax = plt.subplots(nrows = 2, ncols = 4, figsize = (12,4.8))
@@ -500,14 +497,13 @@ def _plot_data_spin_polarization(D = object, ax = None, **kwargs):
         
         for i, txt in zip ([0, 1], ["Px", "Py"]):
             for j in [1,2,3]: ax[i][j].set_title(f"{txt}{ax[i][j].get_title()}", fontsize = 10)
-        
     
     
     elif fig_type == "z" and dim == 2:
         fig, ax = plt.subplots(nrows = 1, ncols = 4, figsize = (12,2.4))
         
         ax[0].imshow(D.intensity.T, extent = extent, aspect = "equal", cmap = "bone_r")
-        ax[1].imshow(D.pz.T, extent = extent, aspect = "equal", cmap = "bwr")
+        ax[1].imshow(D.pz.T, extent = extent, aspect = "equal", cmap = "bwr", vmin = -1, vmax = 1)
         
         vmin = min([D.intensity_pz_plus.min(), D.intensity_pz_minus.min()])
         vmax = max([D.intensity_pz_plus.max(), D.intensity_pz_minus.max()])
@@ -523,8 +519,6 @@ def _plot_data_spin_polarization(D = object, ax = None, **kwargs):
     
     else:
         print(f"{Fore.MAGENTA}Something went wrong."); return
-        
-
     #
     fig.tight_layout()
         
