@@ -1,8 +1,10 @@
-__version__ = "25.11.16"
+__version__ = "25.11.25"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 25.11.25    Bugfix in polarization().
+                    projectSpin() is still under construction.
 Version 25.11.16    Added projectSpin(). Needs to be verified.
 Version 25.11.14    despikeSinManual() works for Map as well (so EDC, MDC, and Map).
 Version 25.11.07    Added despikeSpinManual(). Works for EDC and MDC, will add Map.
@@ -17,7 +19,7 @@ Version 25.10.13    The first version.
 
 import numpy as np
 from copy import deepcopy
-from colorama import Fore
+from colorama import Fore, Back, Style
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
@@ -180,7 +182,7 @@ def polarization(**kwargs):
         print(f"{Fore.BLUE}I got enough data to calculate the in-plane polarization correctly.{Fore.RESET}")
         case = 2
     #
-    elif (c1rp_yeah or c1rm_yeah) and c2rp_yeah and c2rm_yeah:                # 1 coil1 measurement and two coil2 measurements
+    elif (c1rp_yeah ^ c1rm_yeah) and c2rp_yeah and c2rm_yeah:                # 1 coil1 measurement and two coil2 measurements
         print(f"{Fore.BLUE}I got enough data to calculate the in-plane polarization correctly ")
         print(f"and to estimate the out-of-plane polarization.{Fore.RESET}")
         case = 3
@@ -190,7 +192,7 @@ def polarization(**kwargs):
         print(f"for the influence from a potential in-plane polarization.{Fore.RESET}")
         case = 4
     #
-    elif (c1rp_yeah or c1rm_yeah) and not c2rp_yeah and not c2rm_yeah:
+    elif (c1rp_yeah ^ c1rm_yeah) and not c2rp_yeah and not c2rm_yeah:   # ^ = xor
         print(f"{Fore.BLUE}I got enough data to roughly estimate the out-plane polarization but not to correct ")
         print(f"for the influence from a potential in-plane polarization.{Fore.RESET}")
         case = 5        
@@ -201,7 +203,7 @@ def polarization(**kwargs):
     else:
         print(f"{Fore.RED}I did not get enough data to calculate anything at all.{Fore.RESET}")
         return D
-    
+    #
     D.data_type = "spin_polarization"
     
     # ------
@@ -220,8 +222,6 @@ def polarization(**kwargs):
         D._addProperty("px", px)
         D._addProperty("py", py)
         D._addProperty("pz", pz)
-        #
-        
         
     # Accurately Px, Py
     elif case == 2:
@@ -234,8 +234,6 @@ def polarization(**kwargs):
         py = (c2rp.asymmetry + c2rm.asymmetry) / np.sqrt(2.) / sherman
         D._addProperty("px", px)
         D._addProperty("py", py)
-        #
-        
         
     elif case == 3:  # Px and Py, estimating Pz with only one coil1 measurement
         if c1rp_yeah: c1 = deepcopy(c1rp)
@@ -252,7 +250,6 @@ def polarization(**kwargs):
         D._addProperty("py", py)
         D._addProperty("pz", pz)
         
-    
     elif case == 4:  # Pz with two coil1 measurements but no Px compensation
         D._addProperty("axis0", c1rp.axis0)
         D._addProperty("axis0_label", c1rp.axis0_label)
@@ -262,7 +259,6 @@ def polarization(**kwargs):
         pz = 1/np.cos(TA) * ( (c1rp.asymmetry + c1rm.asymmetry)/2/sherman )
         D._addProperty("pz", pz)
         
-    
     elif case == 5:  # Pz with one coil1 measurements and no Px compensation
         if c1rp_yeah: c1 = deepcopy(c1rp)
         else: c1 = deepcopy(c1rm)
@@ -283,26 +279,6 @@ def polarization(**kwargs):
     else:
         print(f"{Fore.MAGENTA}Something went wrong. Probably sloppy coding.{Fore.RESET}")
         return None
-    #
-    #polar = kwargs.get("polar", 0)
-    #try: polar = float(polar)
-    #except:
-    #    polar = 0
-    #    print(f"{Fore.MAGENTA}The argument polar must be a number. Setting it to 0.{Fore.RESET}")
-    
-    #if not polar == 0:
-    #    polarr = np.deg2rad(polar)
-    #    if case in [1,3]:
-    #        p1, p2, p3 = D.pz, D.px, D.py
-    #        P1 = p1 * np.cos(polarr) - p2 * np.sin(polarr)
-    #        P2 = p1 * np.sin(polarr) + p2 * np.cos(polarr)
-    #        P3 = p3 # not rotated by the polar angle
-    #        D.px, D.py, D.pz = P2, 
-    #        
-    #        p1, p2, p3 = np.copy(pz), np.copy(px), np.copy(py)
-    #        P1 = p1 * np.cos(angle) - p2 * np.sin(angle)
-    #        P2 = p1 * np.sin(angle) + p2 * np.cos(angle)
-    #        P3 = p3 # not rotated by the polar angle
     
     if case == 1:
         tot_int = c1rp.intensity_off + c1rp.intensity_on
@@ -345,13 +321,12 @@ def polarization(**kwargs):
         D._addProperty("intensity_pz_plus", tot_int * (1 + pz))
         D._addProperty("intensity_pz_minus", tot_int * (1 - pz))
     elif case == 5:
-        tot_int = (c1rp.intensity_off + c1rp.intensity_on + c1rm.intensity_off + c1rm.intensity_on)/4
+        if c1rp_yeah: tot_int = (c1rp.intensity_off + c1rp.intensity_on)/2
+        else: tot_int = (c1rm.intensity_off + c1rm.intensity_on)/2
         D._addProperty("intensity", tot_int)
         #
         D._addProperty("intensity_pz_plus", tot_int * (1 + pz))
         D._addProperty("intensity_pz_minus", tot_int * (1 - pz))
-        
-        
     #
     return D
             
@@ -369,7 +344,7 @@ def projectSpin(D = object, tilt = 0, polar = 0, azimuth = 0, **kwargs):
     """
     
     """
-    print(f"\n{Fore.RED}UNDER CONSTRUCTION! Use it with caution...{Fore.RESET}\n")
+    print(f"\n{Style.BRIGHT}{Fore.RED}UNDER CONSTRUCTION! Do NOT use this now.{Fore.RESET}{Style.RESET_ALL}\n")
     #
     DD = deepcopy(D)
     #

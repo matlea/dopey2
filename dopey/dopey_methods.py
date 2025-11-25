@@ -1,8 +1,9 @@
-__version__ = "25.10.18"
+__version__ = "25.11.25"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 25.11.25    A very, very minor change. Barely worth mentioning.
 Version 25.10.20    Added method align(fermi map).
 Version 25.10.08    The first version.
 """
@@ -257,7 +258,6 @@ def align(D = object, **kwargs):
         if kwargs.get("help", False):
             print(f"{Fore.BLUE}Arguments:")
             print("D           Data object")
-            print("ax          matplotlib.axes._axes.Axes")
             print(Fore.RESET)
     except: pass
     #

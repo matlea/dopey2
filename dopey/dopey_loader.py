@@ -1,8 +1,9 @@
-__version__ = "25.11.07"
+__version__ = "25.11.25"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 25.11.25    Added method plot() to the data object. Uses plot() from dopey_plot.py.
 Version 25.11.07    Added pickleSave() and pickleLoad()
 Version 25.10.16    Small update: added .arrays as a attribute to Data object.
 Version 25.10.16    Progressing...
@@ -12,11 +13,15 @@ version 25.10.02
 
 """
 
-from colorama import Fore
+from colorama import Fore, Back
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import deepcopy
 import pickle
+
+try: from dopey_plot import plot as dopplot
+except:
+    print(f"{Fore.RED}dopey_loader could not import the plot() method from dopey_plot.{Fore.RESET}")
 
 CCD_ANALYZERS  = ["PhoibosCCD", "AnalyzerCCD"]
 SPIN_ANALYZERS = ["PhoibosSpin"]
@@ -509,6 +514,11 @@ def load(*args, **kwargs):
 
 class _DataObject():
     """
+    This is an object that contains loaded, sorted data, and perhaps manipulated data from Prodigy,
+    e.g. created by load(), asymmetry(), etc.
+    The data and metadata is accessible as attributes, e.g. .intensity, .axis0, etc.
+    A holds a couple of methods, e.g. .plot().
+    
     """
     def _addProperty(self, name: str, value):
         setattr(_DataObject, name, property(self._getter(name), self._setter(name, value)))
@@ -567,6 +577,13 @@ class _DataObject():
             if type(self.__dict__.get(key, None)) is np.ndarray:
                 lst.append(key.replace("__",""))
         return lst
+    
+    # ---
+    
+    def plot(self, ax = None,**kwargs):
+        """
+        """
+        return dopplot(D = self, ax = ax, **kwargs)
         
     
     

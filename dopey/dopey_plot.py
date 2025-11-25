@@ -1,4 +1,4 @@
-__version__ = "25.10.30"
+__version__ = "25.11.16"
 __author__  = "Mats Leandersson"
 
 
