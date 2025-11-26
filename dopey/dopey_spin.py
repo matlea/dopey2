@@ -3,6 +3,7 @@ __author__  = "Mats Leandersson"
 
 
 """
+Version 25.11.27    Updates after data object update.
 Version 25.11.26    Updated projectSpin() so that it seems to work but keep an eye on it!
 Version 25.11.25    Bugfix in polarization().
                     projectSpin() is still under construction.
@@ -386,7 +387,7 @@ def projectSpin(D = object, tilt = 0, polar = 0, azimuth = 0, **kwargs):
     if not "spin_polarization" in typ:
         print(f"{Fore.RED}The argument D must be Data object from polarization().{Fore.RESET}"); return DD
     # -----------------------------------
-    existingAttributes = DD.listAttributes()
+    existingAttributes = DD._listAttributes()
     if "px" in existingAttributes and "py" in existingAttributes and "pz" in existingAttributes: case = "xyz"
     elif "px" in existingAttributes and "py" in existingAttributes and not "pz" in existingAttributes: case = "xy"
     elif "pz" in existingAttributes: case = "z"

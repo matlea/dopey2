@@ -3,6 +3,7 @@ __author__  = "Mats Leandersson"
 
 
 """
+Version 25.11.26    Updates after data object update.
 Version 25.11.16    Minor bugfix.
 Version 25.10.30    Small update to plot component intensities for asymmetry data.
 Version 25.10.20    Added fermi map viewer, not ready but can be used
@@ -141,11 +142,11 @@ def _plot_data_spin_edc(D = object, ax = None, **kwargs):
     asymmetry = kwargs.get("asymmetry", False)
     mean = kwargs.get("mean", False)
     component = kwargs.get("component", False)
-    if asymmetry and "asymmetry" in D.listAttributes():
+    if asymmetry and "asymmetry" in D._listAttributes():
         what_to_plot = "asymmetry"
-    elif component and "component_plus" in D.listAttributes():
+    elif component and "component_plus" in D._listAttributes():
         what_to_plot = "component"
-    elif mean and "intensity_off" in D.listAttributes():
+    elif mean and "intensity_off" in D._listAttributes():
         what_to_plot = "mean"
     #
     figsize = kwargs.get("figsize", (6,4))
@@ -249,9 +250,9 @@ def _plot_data_spin_map(D = None, ax = None, **kwargs):
     if not type(maps) is bool:
         print(f"{Fore.MAGENTA}The argument maps must be a bool. Seeting maps = False{Fore.RESET}."); maps = False
     #    
-    if asymmetry and not "asymmetry" in D.listAttributes(): asymmetry = False
-    if components and not "component_plus" in D.listAttributes(): components = False
-    if means and not "intensity_off" in D.listAttributes(): means = False
+    if asymmetry and not "asymmetry" in D._listAttributes(): asymmetry = False
+    if components and not "component_plus" in D._listAttributes(): components = False
+    if means and not "intensity_off" in D._listAttributes(): means = False
     if not (asymmetry or components or means or maps): maps = True
     #
     if maps: 
@@ -324,11 +325,11 @@ def _plot_data_spin_polarization(D = object, ax = None, **kwargs):
             print(Fore.RESET)
     except: pass
     #
-    if "px" in D.listAttributes() and "py" in D.listAttributes() and "pz" in D.listAttributes(): fig_type = "xyz"
-    elif "px" in D.listAttributes() and "py" in D.listAttributes() and not "pz" in D.listAttributes(): fig_type = "xy"
-    elif not "px" in D.listAttributes() and not "py" in D.listAttributes() and "pz" in D.listAttributes(): fig_type = "z"
+    if "px" in D._listAttributes() and "py" in D._listAttributes() and "pz" in D._listAttributes(): fig_type = "xyz"
+    elif "px" in D._listAttributes() and "py" in D._listAttributes() and not "pz" in D._listAttributes(): fig_type = "xy"
+    elif not "px" in D._listAttributes() and not "py" in D._listAttributes() and "pz" in D._listAttributes(): fig_type = "z"
     dim = 1
-    if "axis1" in D.listAttributes(): 
+    if "axis1" in D._listAttributes(): 
         dim = 2
         extent = [D.axis0[0], D.axis0[-1], D.axis1[-1], D.axis1[0]]
     #

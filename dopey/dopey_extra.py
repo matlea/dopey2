@@ -51,7 +51,7 @@ def export2txt(D = object, file_name = "data", **kwargs):
             f.write("# columns:     x-axis, y-axes\n")
             f.write(f"# x-axis:      {D.axis0_label}\n")
             #
-            if not "asymmetry" in D.listAttributes():
+            if not "asymmetry" in D._listAttributes():
                 f.write(f"# y-axes:      Negative polarity {str(list(D.parameter0))[1:-1]}\n")
                 for i in range(len(D.axis0)):
                     f.write( f"{round(D.axis0[i],5)}\t" + "\t".join(str(round(e,5)) for e in D.intensity.T[0]) + "\n" )

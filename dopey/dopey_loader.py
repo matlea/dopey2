@@ -543,8 +543,7 @@ class _DataObject():
         self._addProperty("dopey", __version__)
     
     def __str__(self):
-        dataInfo(self)
-        return ""
+        return dataInfo(self, ret = True)
     
     @property
     def info(self):
@@ -604,11 +603,12 @@ class _DataObject():
 # ---------------------------------------------------------------------------------------------------------------
 
 
-def dataInfo(D = None):
+def dataInfo(D = None, ret = False):
     try: _ = D.dopey
     except:
         print(f"{Fore.RED}info(): the argument must be a Data object."); return
     #
+    out = ""
     for key in D.__dict__.keys():
         if key.startswith("__"):
             key_name = Fore.BLUE + key.replace('__', '').ljust(20) + Fore.RESET
@@ -618,7 +618,7 @@ def dataInfo(D = None):
                 t = "Array".ljust(15)
                 s = f"shape = {np.shape(item)}".ljust(25)
                 nk = f"{key}_label"
-                print(f"{key_name}{t}{s}{D.__dict__.get(nk,'')}")
+                out += f"{key_name}{t}{s}{D.__dict__.get(nk,'')}\n"
             #elif typ is str and not "_label" in key_name:
             #    t = "String".ljust(15)
             #    s = item.replace("\n", " ").replace("\t", " ")
@@ -626,8 +626,8 @@ def dataInfo(D = None):
             elif typ is float or typ is int or typ is np.float64:
                 t = "Scalar".ljust(15)
                 v = item
-                print(f"{key_name}{t}{v}")
-    print("-")
+                out += f"{key_name}{t}{v}\n"
+    out += "-\n"
     #
     for key in D.__dict__.keys():
         if key.startswith("__"):
@@ -636,16 +636,18 @@ def dataInfo(D = None):
             typ = type(item)
             if typ is dict:
                 t = "Dictionary".ljust(15)
-                print(f"{key_name}{t}")
+                out += f"{key_name}{t}\n"
             elif typ is str:# and "_label" in key_name:
                 if not "dopey" in key_name:
                     t = "String".ljust(15)
                     s = item.replace("\n", " ").replace("\t", " ")
-                    print(f"{key_name}{t}{s}")
+                    out += f"{key_name}{t}{s}\n"
             elif typ is list:
                 t = "List".ljust(15)
                 v = len(item)
-                print(f"{key_name}{t}len = {v}")
+                out += f"{key_name}{t}len = {v}\n"
+    if ret: return out
+    else: print(out)
 
 
 
