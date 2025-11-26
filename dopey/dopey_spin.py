@@ -1,8 +1,9 @@
-__version__ = "25.11.25"
+__version__ = "25.11.26"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 25.11.26    Updated projectSpin() so that it seems to work but keep an eye on it!
 Version 25.11.25    Bugfix in polarization().
                     projectSpin() is still under construction.
 Version 25.11.16    Added projectSpin(). Needs to be verified.
@@ -55,6 +56,9 @@ TA = np.deg2rad(15)
 
 def asymmetry(D = object, **kwargs):
     """
+    This method takes a data object containing spin data (EDC, MDC, or Map) and calculates the
+    asymmeetry and distributed intensity ('component intensity'). Returns a data object.
+    Accepts keyword arguments exclude (list), normp and normpn (integers)
     """
     try:
         if kwargs.get("help", False):
@@ -134,6 +138,10 @@ def asymmetry(D = object, **kwargs):
 
 def polarization(**kwargs):
     """
+    This method calculates Px, Py, and/or Pz from data from the asymmetry()
+    method. Pass any valid combination of asymmetries from coil 1 and coil 2 
+    and rotator -1 and +1 as arguments c1rp, c1rm, c2rp, and/or c2rm.
+    Also accept the keyword argument sherman.
     """
     global SHERMAN
     try:
@@ -147,6 +155,9 @@ def polarization(**kwargs):
             print(f"{Fore.BLUE}Keyword arguments:")
             print("  c1rp, c1rm, c2rp, c2rm                             data objects from asymmetry()")
             print(f"  sherman                                            scalar (default {SHERMAN})")
+            print(f"Extra keyword arguments:")
+            print("  tilt, polar, azimuth                               project lab frame to sample frame")
+            print("                                                     (or use method projectSpin in a 2nd step)")
             print(Fore.RESET)
     except: pass
     #
@@ -328,6 +339,23 @@ def polarization(**kwargs):
         D._addProperty("intensity_pz_plus", tot_int * (1 + pz))
         D._addProperty("intensity_pz_minus", tot_int * (1 - pz))
     #
+    # ---
+    #
+    tilt,  polar, azimuth = kwargs.get("tilt", 0.), kwargs.get("polar", 0.), kwargs.get("azimuth", 0)
+    try: tilt = float(tilt)
+    except:
+        print(f"{Fore.RED}Argument tilt must be a number. Setting tilt = 0.{Fore.RESET}"); tilt = 0.
+    try: polar = float(polar)
+    except:
+        print(f"{Fore.RED}Argument polar must be a number. Setting polar = 0.{Fore.RESET}"); polar = 0.
+    try: azimuth = float(azimuth)
+    except:
+        print(f"{Fore.RED}Argument tilt azimuth be a number. Setting azimuth = 0.{Fore.RESET}"); azimuth = 0.
+    if not (tilt == 0 and polar == 0 and azimuth == 0):
+        print(f"{Fore.BLUE}A value or values for tilt, polar, and/or azimuth is/are non-zero")
+        print(f"so I'm calling the projectSpin() method.{Fore.RESET}")
+        D = projectSpin(D = D, tilt = tilt, polar = polar, azimuth = azimuth)
+    # ---
     return D
             
 
@@ -342,9 +370,12 @@ def polarization(**kwargs):
 
 def projectSpin(D = object, tilt = 0, polar = 0, azimuth = 0, **kwargs):
     """
-    
+    This method is used to project the calculated spin (lab frame) on to the sample. Use when the
+    sample is in off-normal position.
+    Pass the output from the polarization() method plus arguments tilt, polar, and azimuth.
+    Returns a data object.
     """
-    print(f"\n{Style.BRIGHT}{Fore.RED}UNDER CONSTRUCTION! Do NOT use this now.{Fore.RESET}{Style.RESET_ALL}\n")
+    print(f"\n{Fore.MAGENTA}projectSpin(): I'm in development. {Style.BRIGHT}Verify that the output make sense.{Style.RESET_ALL}{Fore.RESET}\n")
     #
     DD = deepcopy(D)
     #
@@ -397,17 +428,23 @@ def projectSpin(D = object, tilt = 0, polar = 0, azimuth = 0, **kwargs):
             px = np.zeros([len(DD.axis0)]); py, pz = np.copy(px), np.copy(px)
             for i in range(len(DD.axis0)):
                 p = np.array([D.px[i], D.py[i], D.pz[i]])           # p-vector in on point (Ek or deflector)
-                px[i] = np.linalg.norm( projAonB(a = p, b = uu) )   # the size of that vector projected to sample-x
-                py[i] = np.linalg.norm( projAonB(a = p, b = vv) )   # the size of that vector projected to sample-y
-                pz[i] = np.linalg.norm( projAonB(a = p, b = ww) )   # the size of that vector projected to sample-z
+                px_ = projAonB(a = p, b = uu)   # projection to sample-x
+                py_ = projAonB(a = p, b = vv)   # projection to sample-y
+                pz_ = projAonB(a = p, b = ww)   # projection to sample-z
+                px[i] = np.linalg.norm( px_ ) * np.sign(px_[0])  # the size and sign.  ### IS THIS CORRECT??? ###
+                py[i] = np.linalg.norm( py_ ) * np.sign(py_[1]) 
+                pz[i] = np.linalg.norm( pz_ ) * np.sign(pz_[2]) 
         elif dim == 2:
             px = np.zeros([len(DD.axis0), len(DD.axis1)]); py, pz = np.copy(px), np.copy(px)
             for i in range(len(DD.axis0)):
                 for j in range(DD.axis1):
                     p = np.array([D.px[i,j], D.py[i,j], D.pz[i,j]])
-                    px[i,j] = np.linalg.norm( projAonB(a = p, b = uu) )
-                    py[i,j] = np.linalg.norm( projAonB(a = p, b = vv) )
-                    pz[i,j] = np.linalg.norm( projAonB(a = p, b = ww) )
+                    px[i,j] = projAonB(a = p, b = uu)
+                    py[i,j] = projAonB(a = p, b = vv) 
+                    pz[i,j] = projAonB(a = p, b = ww) 
+                    px[i,j] = np.linalg.norm( px[i,j] ) * np.sign(px[i,j,0])  ### IS THIS CORRECT??? ###
+                    py[i,j] = np.linalg.norm( py[i,j] ) * np.sign(py[i,j,1])
+                    pz[i,j] = np.linalg.norm( pz[i,j] ) * np.sign(pz[i,j,2])
         DD.px, DD.py, DD.pz = px, py, pz
         DD.intensity_px_plus =  D.intensity * (1+px)
         DD.intensity_px_minus = D.intensity * (1-px)

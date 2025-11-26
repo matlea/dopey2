@@ -3,6 +3,7 @@ __author__  = "Mats Leandersson"
 
 
 """
+Version 25.11.26    Bugfix (in loading plot() dopey_plot).
 Version 25.11.25    Added method plot() to the data object. Uses plot() from dopey_plot.py.
 Version 25.11.07    Added pickleSave() and pickleLoad()
 Version 25.10.16    Small update: added .arrays as a attribute to Data object.
@@ -13,7 +14,7 @@ version 25.10.02
 
 """
 
-from colorama import Fore, Back
+from colorama import Fore, Back, Style
 import numpy as np
 import matplotlib.pyplot as plt
 from copy import deepcopy
@@ -21,7 +22,9 @@ import pickle
 
 try: from dopey_plot import plot as dopplot
 except:
-    print(f"{Fore.RED}dopey_loader could not import the plot() method from dopey_plot.{Fore.RESET}")
+    try: from dopey.dopey_plot import plot as dopplot
+    except:
+        print(f"{Fore.RED}dopey_loader could not import the plot() method from dopey_plot.{Fore.RESET}")
 
 CCD_ANALYZERS  = ["PhoibosCCD", "AnalyzerCCD"]
 SPIN_ANALYZERS = ["PhoibosSpin"]
@@ -275,8 +278,8 @@ def load(*args, **kwargs):
                 #    D._addProperty(f"axis2_label", raw_data["experiment"]["parameters"][0])
                 #
                 if not shup:
-                    D.printDataType()
-                    D.printAxesAndParameters()
+                    D._printDataType()
+                    D._printAxesAndParameters()
                     
             else:
                 print(Fore.MAGENTA + "Data(): I can not sort this data right now. Keeping the raw data." + Fore.RESET)
@@ -310,8 +313,8 @@ def load(*args, **kwargs):
                     D._addProperty( "parameter0_label", raw_data["experiment"]["parameters"][0])
                     
                     if not shup:
-                        D.printDataType()
-                        D.printAxesAndParameters()
+                        D._printDataType()
+                        D._printAxesAndParameters()
                         
                 
                 # --- spin mdc
@@ -344,8 +347,8 @@ def load(*args, **kwargs):
                     # ---- flip it so that it matches the edc (with polarity a )
                     
                     if not shup:
-                        D.printDataType()
-                        D.printAxesAndParameters()
+                        D._printDataType()
+                        D._printAxesAndParameters()
                 
                 
                 # --- spin map
@@ -376,8 +379,8 @@ def load(*args, **kwargs):
                     D._addProperty("parameter0_label", raw_data["experiment"]["parameters"][0])
                     
                     if not shup:
-                        D.printDataType()
-                        D.printAxesAndParameters()
+                        D._printDataType()
+                        D._printAxesAndParameters()
                 
                 # -------
                 elif len(D.parameters) == 6 and "Lens1" in D.parameters[0]  and "Lens2" in D.parameters[1] and "Lens3" in D.parameters[2] and "Lens4" in D.parameters[3] and "ScatteringEnergy" in D.parameters[4]:
@@ -412,8 +415,8 @@ def load(*args, **kwargs):
                     D._addProperty("parameter4_label", D.parameters[4])   # This one is the same as axis0
                     
                     if not shup:
-                        D.printDataType()
-                        D.printAxesAndParameters()
+                        D._printDataType()
+                        D._printAxesAndParameters()
                 
                 # --------- Ferrum arpes
                 elif len(D.parameters) == 3 and D.parameters[0] == "NegativePolarity" and "Shift" in D.parameters[1] and D.parameters[2] == "Step" and vpc > 1:
@@ -450,8 +453,8 @@ def load(*args, **kwargs):
                         D._addProperty( "parameter1_label", raw_data["experiment"]["parameters"][1])
                         
                         if not shup:
-                            D.printDataType()
-                            D.printAxesAndParameters()
+                            D._printDataType()
+                            D._printAxesAndParameters()
                         
                 
                 elif False:
@@ -539,13 +542,17 @@ class _DataObject():
         """    
         self._addProperty("dopey", __version__)
     
+    def __str__(self):
+        dataInfo(self)
+        return ""
+    
     @property
     def info(self):
         dataInfo(self)
     
     @property
     def arrays(self):
-        lst = self.listArrays()
+        lst = self._listArrays()
         print(f"Arrays:")
         for attr in lst:
             shape = np.shape(self.__dict__["__"+attr])
@@ -554,10 +561,10 @@ class _DataObject():
     
     # --------------------------------------------------------------------------
     
-    def printDataType(self):
+    def _printDataType(self):
         print(f"Data type:\n  {Fore.BLUE}{self.data_type}{Fore.RESET}")
         
-    def printAxesAndParameters(self):
+    def _printAxesAndParameters(self):
         print(f"Data, axes, and parameters:")
         for key in self.__dict__.keys():
             name, value = "", ""
@@ -566,12 +573,12 @@ class _DataObject():
                 shape = np.shape(self.__dict__["__"+name])
                 print(f"  {Fore.BLUE}{name.ljust(20)}{Fore.RESET}{self.__dict__[key].ljust(25)}shape={shape}")
     
-    def listAttributes(self):
+    def _listAttributes(self):
         lst = []
         for key in self.__dict__.keys(): lst.append(key.replace("__",""))
         return lst
     
-    def listArrays(self):
+    def _listArrays(self):
         lst = []
         for key in self.__dict__.keys(): 
             if type(self.__dict__.get(key, None)) is np.ndarray:
