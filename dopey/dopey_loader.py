@@ -3,6 +3,7 @@ __author__  = "Mats Leandersson"
 
 
 """
+Version 25.12.06    Adding rudimentary loader for spin_arpes
 Version 25.11.26    Bugfix (in loading plot() dopey_plot).
 Version 25.11.25    Added method plot() to the data object. Uses plot() from dopey_plot.py.
 Version 25.11.07    Added pickleSave() and pickleLoad()
@@ -241,6 +242,7 @@ def load(*args, **kwargs):
         
     if not only_raw:
         # --- first sort of data
+        #print(f"{D.experiment['Scan_Mode'] = }") # debug
         
         if D.experiment["Analyzer"] in CCD_ANALYZERS:
             num_axes = 0
@@ -287,6 +289,8 @@ def load(*args, **kwargs):
             
         
         elif D.experiment["Analyzer"] in SPIN_ANALYZERS:
+            #print(f"{len(D.parameters) = }, {D.parameters[0] = }, {D.parameters[1] = }, {D.parameters[1] = }")  ### DEBUG
+            #print(f"{len(D.parameters) = }, {D.parameters[0] = }, {raw_data['parameter_values'][0] = }")  ### DEBUG
             if len(raw_data["steps"]) > 0:
                 vpc = int(D.experiment.get("Values_Per_Curve", 1))
                 
@@ -318,7 +322,7 @@ def load(*args, **kwargs):
                         
                 
                 # --- spin mdc
-                elif len(D.parameters) == 3 and D.parameters[0] == "NegativePolarity" and "Shift" in D.parameters[1] and D.parameters[2] == "Step" and vpc == 1:
+                elif len(D.parameters) == 3 and D.parameters[0] == "NegativePolarity" and "Shift" in D.parameters[1] and D.parameters[2] == "Step" and D.experiment["Scan_Mode"] == "FixedEnergies" and vpc == 1:
                     #
                     # Update this part. See how it is done for spin_mdc and do accordingly!
                     #
@@ -419,16 +423,9 @@ def load(*args, **kwargs):
                         D._printAxesAndParameters()
                 
                 # --------- Ferrum arpes
-                elif len(D.parameters) == 3 and D.parameters[0] == "NegativePolarity" and "Shift" in D.parameters[1] and D.parameters[2] == "Step" and vpc > 1:
+                elif len(D.parameters) == 1:# and "Shift" in D.parameters[0]:
+                    print("{D.parameters[0] = }")     ### DEBUG
                     if len(np.unique(raw_data["parameter_values"][0])) > 1:
-                        print(f"{Fore.MAGENTA}Data():")
-                        print("This appears to me to be data from a kind of Ferrum ARPES measurement. HOWEVER, the data seems ")
-                        print("to include more than one target magnetization. I can not sort this data. The raw data will be ")
-                        print("returned for you to sort yourself.")
-                        print("If you have received this message please inform the staff so that they can spend a bit of time ")
-                        print(f"updating this code. Thank you.{Fore.RESET}" )
-                        keep_raw_data = True
-                    else:
                         D._addProperty("data_type", "spin_arpes")
                         #
                         sn = len(raw_data["column1"])
@@ -456,9 +453,42 @@ def load(*args, **kwargs):
                             D._printDataType()
                             D._printAxesAndParameters()
                         
-                
-                elif False:
-                    pass
+                # spin_arpes
+                elif len(D.parameters) == 3 and D.parameters[0] == "NegativePolarity" and "Shift" in D.parameters[1] and D.parameters[2] == "Step" and D.experiment["Scan_Mode"] == "FixedAnalyzerTransmission":
+                    D._addProperty("data_type", "spin_arpes")
+                    #
+                    num_points = len(raw_data["column2"])           # number of points in a column
+                    deflectors = raw_data["parameter_values"][1]    # deflector value per curve
+                    unique_deflectors = np.unique(deflectors)       # unique deflector values
+                    num_defl = len(unique_deflectors)               # number of unique deflector values
+                    
+                    pulses = raw_data["parameter_values"][0]        # individual pulses (one per curve)
+                    num_pulses = len(pulses)                        # number of curves
+                                        
+                    num_e = int(num_points/num_pulses)              # number of energy points in a curve
+
+                    data = np.reshape(raw_data["column2"], (num_pulses, num_e)) # reshaping the column
+                    energy_axis = raw_data["column1"][:num_e]
+                    
+                    data1 = np.zeros((num_defl, num_e))
+                    data2 = np.copy(data1)
+                    for i, curve in enumerate(data):
+                        ii = abs(deflectors[i]-unique_deflectors).argmin()
+                        if pulses[i] == -1: data1[ii] += curve
+                        else: data2[ii] += curve
+
+                    D._addProperty("intensity", np.array([data1, data2]))
+                    D._addProperty("intensity_label", "summed up counts")
+                    D._addProperty( "axis0", energy_axis)
+                    D._addProperty( "axis0_label", D.experiment["Energy_Axis"])
+                    D._addProperty( "axis1", unique_deflectors) 
+                    D._addProperty( "axis1_label", raw_data["experiment"]["parameters"][1])
+                    D._addProperty("parameter0", np.array([-1,1]))
+                    D._addProperty("parameter0_label", "NegativePolarity")
+                    
+                    if not shup:
+                        D._printDataType()
+                        D._printAxesAndParameters()
                     
                 #
                 else:
@@ -483,7 +513,7 @@ def load(*args, **kwargs):
             if not shup: print(f"  .raw_{key}")
         
     # extras -------
-    if len(D.parameters) > 0: D.parameters = D.parameters[:-1]
+    #if len(D.parameters) > 0: D.parameters = D.parameters[:-1]
     for key in ["Spectrum_ID", "Analysis_Method", "Analyzer", "Lens_Mode", "Scan_Mode", "Ek", "Ep", "Comment"]:
         D._addProperty(key, raw_data["experiment"].get(key, None))
     

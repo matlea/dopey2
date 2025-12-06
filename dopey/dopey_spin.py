@@ -3,6 +3,7 @@ __author__  = "Mats Leandersson"
 
 
 """
+Version 25.12.06    Adding rudimentary asymmetry for spin_arpes
 Version 25.11.27    Updates after data object update.
 Version 25.11.26    Updated projectSpin() so that it seems to work but keep an eye on it!
 Version 25.11.25    Bugfix in polarization().
@@ -57,7 +58,7 @@ TA = np.deg2rad(15)
 
 def asymmetry(D = object, **kwargs):
     """
-    This method takes a data object containing spin data (EDC, MDC, or Map) and calculates the
+    This method takes a data object containing spin data (EDC, MDC, ARPES, or Map) and calculates the
     asymmeetry and distributed intensity ('component intensity'). Returns a data object.
     Accepts keyword arguments exclude (list), normp and normpn (integers)
     """
@@ -100,32 +101,46 @@ def asymmetry(D = object, **kwargs):
         if normpn > len(D.axis0) - normp:
             print(f"{Fore.RED}The argument normpn must be in (1, {len(D.axis0)-normp}). Setting it to default normpn = 1.{Fore.RESET}"); normpn = 1
     #
-    intensity = []
-    intensity1 = []     # off, i.e. -1
-    intensity2 = []     # on, i.e. 1
-    parameter0 = []
-    for i, curve in enumerate(D.intensity):
-        if not i in exclude:
-            if normpn == 0: norm = 1.
-            else: norm = curve[normp:normp+normpn].sum()
-            intensity.append(curve/norm)
-            parameter0.append(D.parameter0[i])
-            if parameter0[-1] == -1: intensity1.append(curve/norm)
-            else: intensity2.append(curve/norm)
-    #
-    intensity1, intensity2 = np.array(intensity1), np.array(intensity2)
-    if len(intensity1) == 0 or len(intensity2) == 0:
-        print(f"{Fore.RED}I can not calculate an asymmetry.{Fore.RESET}"); return DD    
-    DD.intensity = np.array(intensity)
-    DD.parameter0 = parameter0
-    #
-    intensity1, intensity2 = intensity1.sum(axis = 0)/np.shape(intensity1)[0], intensity2.sum(axis = 0)/np.shape(intensity2)[0]
-    DD._addProperty("intensity_off", intensity1)
-    DD._addProperty("intensity_on", intensity2)
-    DD._addProperty("asymmetry", (intensity1-intensity2)/(intensity1+intensity2))
-    #
-    DD._addProperty("component_plus",  (intensity1 + intensity2) * (1 + DD.asymmetry))
-    DD._addProperty("component_minus", (intensity1 + intensity2) * (1 - DD.asymmetry))
+    if "edc" in typ or "mdc" in typ or "map" in typ: 
+        intensity = []
+        intensity1 = []     # off, i.e. -1
+        intensity2 = []     # on, i.e. 1
+        parameter0 = []
+        for i, curve in enumerate(D.intensity):
+            if not i in exclude:
+                if normpn == 0: norm = 1.
+                else: norm = curve[normp:normp+normpn].sum()
+                intensity.append(curve/norm)
+                parameter0.append(D.parameter0[i])
+                if parameter0[-1] == -1: intensity1.append(curve/norm)
+                else: intensity2.append(curve/norm)
+        #
+        intensity1, intensity2 = np.array(intensity1), np.array(intensity2)
+        if len(intensity1) == 0 or len(intensity2) == 0:
+            print(f"{Fore.RED}I can not calculate an asymmetry.{Fore.RESET}"); return DD    
+        DD.intensity = np.array(intensity)
+        DD.parameter0 = parameter0
+        #
+        intensity1, intensity2 = intensity1.sum(axis = 0)/np.shape(intensity1)[0], intensity2.sum(axis = 0)/np.shape(intensity2)[0]
+        DD._addProperty("intensity_off", intensity1)
+        DD._addProperty("intensity_on", intensity2)
+        DD._addProperty("asymmetry", (intensity1-intensity2)/(intensity1+intensity2))
+        #
+        dims = np.shape(DD.asymmetry)
+        for i in range(dims[0]):
+            for j in range(dims[1]):
+                if np.isnan(DD.asymmetry[i][j]): DD.asymmetry[i][j] = 0
+        #
+        DD._addProperty("component_plus",  (intensity1 + intensity2) * (1 + DD.asymmetry))
+        DD._addProperty("component_minus", (intensity1 + intensity2) * (1 - DD.asymmetry))
+    
+    elif "arpes" in typ:
+        DD._addProperty("intensity_off", DD.intensity[0])
+        DD._addProperty("intensity_on", DD.intensity[1])
+        DD._addProperty("asymmetry", (DD.intensity_off-DD.intensity_on)/(DD.intensity_off+DD.intensity_on))
+        DD._addProperty("component_plus",  (DD.intensity_off+DD.intensity_on) * (1 + DD.asymmetry))
+        DD._addProperty("component_minus", (DD.intensity_off+DD.intensity_on) * (1 - DD.asymmetry))
+        
     #
     return DD
         

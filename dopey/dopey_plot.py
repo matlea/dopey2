@@ -3,6 +3,7 @@ __author__  = "Mats Leandersson"
 
 
 """
+Version 25.12.06    Adding rudimentary plot for spin_arpes
 Version 25.11.26    Updates after data object update.
 Version 25.11.16    Minor bugfix.
 Version 25.10.30    Small update to plot component intensities for asymmetry data.
@@ -53,6 +54,7 @@ def plot(D = object, ax = None, **kwargs):
     if D.data_type == "fermi_cut": return _plot_data_ccd2d(D = D, ax = ax, transpose = True, **kwargs)
     if D.data_type == "spin_edc": return _plot_data_spin_edc(D = D, ax = ax, **kwargs)
     if D.data_type == "spin_mdc": return _plot_data_spin_edc(D = D, ax = ax, **kwargs)
+    if D.data_type == "spin_arpes": return _plot_data_spin_arpes(D = D, ax = ax, **kwargs)
     if D.data_type == "spin_map": return _plot_data_spin_map(D = D, ax = ax, **kwargs)
     if D.data_type == "spin_polarization": return _plot_data_spin_polarization(D = D, ax = ax, **kwargs)
     if D.data_type == "ccd_3d": return _plot_data_ccd3d(D = D, ax = ax, **kwargs)
@@ -212,6 +214,34 @@ def _plot_data_spin_edc(D = object, ax = None, **kwargs):
     if not type(fig) is type(None): fig.tight_layout()
     return ax
 
+
+
+def _plot_data_spin_arpes(D = None, ax = None, **kwargs):
+    """
+    """
+    print(f"{Fore.MAGENTA}Note: plotting spin-arpes data is under development.{Fore.RESET}")
+    try:
+        if kwargs.get("help", False):
+            print(f"{Fore.BLUE}Keyword arguments:")
+            print("this plot method is under development...")
+
+            print(Fore.RESET)
+    except: pass
+    #
+    DD = deepcopy(D)
+    #
+    try: typ = DD.data_type
+    except:
+        print(f"{Fore.RED}The argument D must be Data object.{Fore.RESET}"); return DD
+    if not "spin" in typ:
+        print(f"{Fore.RED}The argument D must be Data object containing (sorted!) spin data.{Fore.RESET}"); return DD
+    #
+    
+    
+    
+
+
+
                 
 def _plot_data_spin_map(D = None, ax = None, **kwargs):
     """
@@ -224,8 +254,9 @@ def _plot_data_spin_map(D = None, ax = None, **kwargs):
             print("asymmetry      bool          applicable for data from asymmetry()")
             print("mean           bool          applicable for data from asymmetry()")
             print("components     bool          applicable for data from asymmetry()")
+            print("show.          bool          applicable for data from asymmetry()")
             print("cbar           bool          colorbar (default False)")
-            print("vmin/vmax      scalars")
+            print("vmin/vmax      scalars       sometimes applicable...")
             print(Fore.RESET)
     except: pass
     #
@@ -241,6 +272,7 @@ def _plot_data_spin_map(D = None, ax = None, **kwargs):
     means      = kwargs.get("means", False)
     components = kwargs.get("components", False)
     maps       = kwargs.get("maps", False)
+    show       = kwargs.get("show", False)
     if not type(asymmetry) is bool:
         print(f"{Fore.MAGENTA}The argument asymmetry must be a bool. Seeting asymmetry = False{Fore.RESET}."); asymmetry = False
     if not type(means) is bool:
@@ -249,19 +281,22 @@ def _plot_data_spin_map(D = None, ax = None, **kwargs):
         print(f"{Fore.MAGENTA}The argument components must be a bool. Seeting components = False{Fore.RESET}."); components = False
     if not type(maps) is bool:
         print(f"{Fore.MAGENTA}The argument maps must be a bool. Seeting maps = False{Fore.RESET}."); maps = False
+    if not type(show) is bool:
+        print(f"{Fore.MAGENTA}The argument show must be a bool. Seeting show = False{Fore.RESET}."); show = False
     #    
     if asymmetry and not "asymmetry" in D._listAttributes(): asymmetry = False
     if components and not "component_plus" in D._listAttributes(): components = False
     if means and not "intensity_off" in D._listAttributes(): means = False
-    if not (asymmetry or components or means or maps): maps = True
+    if not (asymmetry or components or means or maps or show): maps = True
+    print(show)
     #
-    if maps: 
+    if maps or show: 
         numax = len(D.intensity)
         figsize = (numax * 2.5, 2.5)
     elif components or means: 
         numax = 2
         figsize, numax = (numax * 3, 3), 2 
-    elif asymmetry: 
+    elif asymmetry or show: 
         numax = 1
         figsize, numax = (3,3), 1
     #
@@ -303,6 +338,11 @@ def _plot_data_spin_map(D = None, ax = None, **kwargs):
     elif asymmetry:
         ims.append( ax[0].imshow(D.asymmetry.T, aspect = "equal", extent = extent, cmap = "bwr") )
         ax[0].set_title("asymmetry", fontsize = 10)
+    elif show:
+        array = D.component_plus.T - D.component_minus.T
+        v = max([abs(array.min()), abs(array.max())])
+        ims.append( ax[0].imshow(D.component_plus.T - D.component_minus.T, aspect = "equal", extent = extent, cmap = "bwr", vmin = -v, vmax = v) )
+        ax[0].set_title("'show'", fontsize = 10)
     #
     for i, a in enumerate(ax):
         a.invert_yaxis()
