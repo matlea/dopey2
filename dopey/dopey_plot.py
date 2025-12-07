@@ -1,8 +1,9 @@
-__version__ = "25.11.16"
+__version__ = "25.12.07"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 25.12.07    General upgrades, mostly related to spin_arpes but also other stuff.
 Version 25.12.06    Adding rudimentary plot for spin_arpes
 Version 25.11.26    Updates after data object update.
 Version 25.11.16    Minor bugfix.
@@ -219,12 +220,16 @@ def _plot_data_spin_edc(D = object, ax = None, **kwargs):
 def _plot_data_spin_arpes(D = None, ax = None, **kwargs):
     """
     """
-    print(f"{Fore.MAGENTA}Note: plotting spin-arpes data is under development.{Fore.RESET}")
     try:
         if kwargs.get("help", False):
             print(f"{Fore.BLUE}Keyword arguments:")
-            print("this plot method is under development...")
-
+            print("intensity   bool        plot raw intensities for ON and OFF.")
+            print("asymmetry   bool        plot the asymmetry (applicable for data from asymmetry()).")
+            print("component   bool        plot raw components for ON and OFF (applicable for data from asymmetry()).")
+            print("show        bool        (applicable for data from asymmetry()).")
+            print("cbar        bool        show colorbar, default False")
+            print("cmap        str         colormap")
+            print("vmin, vmax  numbers")
             print(Fore.RESET)
     except: pass
     #
@@ -236,9 +241,97 @@ def _plot_data_spin_arpes(D = None, ax = None, **kwargs):
     if not "spin" in typ:
         print(f"{Fore.RED}The argument D must be Data object containing (sorted!) spin data.{Fore.RESET}"); return DD
     #
+    what_to_plot = "intensity"
+    #
+    intensity = kwargs.get("intensity", False)
+    asymmetry = kwargs.get("asymmetry", False)
+    component = kwargs.get("component", False)
+    show = kwargs.get("show", False)
+    if intensity:
+        pass
+    elif asymmetry and "asymmetry" in D._listAttributes():
+        what_to_plot = "asymmetry"
+    elif component and "component_plus" in D._listAttributes():
+        what_to_plot = "component"
+    elif show and "asymmetry" in D._listAttributes():
+        what_to_plot = "show"
+    else:
+        what_to_plot = "intensity"
+    #
+    if what_to_plot in ["intensity", "component"]: 
+        numax = 2
+        figsize = (5, 2.5)
+    elif what_to_plot in ["asymmetry", "show"]: 
+        numax = 1
+        figsize = (2.5, 3)
+    #
+    fig = None
+    if type(ax) is type(None):
+        fig, ax = plt.subplots(ncols = numax, figsize = figsize)
+    if not type(ax) is np.ndarray: ax = np.array([ax])
+    #
+    cbar = kwargs.get("cbar", False)
+    if not type(cbar) is bool:
+        print(f"{Fore.MAGENTA}The argument cbar must be a bool. Seeting cbar = False{Fore.RESET}."); cbar = False
+    #
+    vmin, vmax = kwargs.get("vmin", None), kwargs.get("vmax", None)
+    try: vmin, vmax = float(vmin), float(vmax)
+    except: vmin, vmax = None, None
+    #
+    cmap = kwargs.get("cmap", None)
+    if not type(cmap) is str: cmap = None
+    #
+    extent = [D.axis0[0], D.axis0[-1], D.axis1[-1], D.axis1[0]]
+    ims = []
+    #
     
+    if what_to_plot in ["intensity"]:
+        if type(vmin) is type(None):
+            vmin, vmax = [], []
+            for mp in D.intensity:
+                vmin.append(mp.min()); vmax.append(mp.max())
+            vmin, vmax = min(vmin), max(vmax)
+        if not type(cmap) is str: cmap = "hot"
+        for i in [0,1]:
+            ims.append( ax[i].imshow(D.intensity[i], aspect = "auto", vmin = vmin, vmax = vmax, extent = extent, cmap = cmap) )
+            ax[i].set_title(f"neg. pol {D.parameter0[0]}", fontsize = 9)
+            
+    elif what_to_plot in ["component"]:
+        if type(vmin) is type(None):
+            vmin = min([D.component_plus.min(), D.component_minus.min()])
+            vmax = max([D.component_plus.max(), D.component_minus.max()])
+        if not type(cmap) is str: cmap = "hot"
+        ims.append( ax[0].imshow(D.component_minus, aspect = "auto", vmin = vmin, vmax = vmax, extent = extent, cmap = cmap) )
+        ims.append( ax[1].imshow(D.component_plus, aspect = "auto", vmin = vmin, vmax = vmax, extent = extent, cmap = cmap) )
+        ax[0].set_title(f"component MINUS", fontsize = 9)
+        ax[1].set_title(f"component PLUS", fontsize = 9)
     
+    elif what_to_plot in ["asymmetry"]:
+        if type(vmin) is type(None):
+            v = max([abs(D.asymmetry.min()), abs(D.asymmetry.max())])
+            vmin, vmax = -v, v
+        if not type(cmap) is str: cmap = "bwr"
+        ims.append( ax[0].imshow(D.asymmetry, aspect = "auto", vmin = vmin, vmax = vmax, extent = extent, cmap = cmap) )
+        ax[0].set_title(f"asymmetry", fontsize = 9)
     
+    elif what_to_plot in ["show"]:
+        I = (D.component_plus - D.component_minus) / (D.component_plus + D.component_minus)
+        if type(vmin) is type(None):
+            v = max([abs(I.min()), abs(I.max())])
+            vmin, vmax = -v, v
+        if not type(cmap) is str: cmap = "bwr"
+        ims.append( ax[0].imshow(I, aspect = "auto", vmin = vmin, vmax = vmax, extent = extent, cmap = "bwr") )
+        ax[0].set_title(f"", fontsize = 9)
+    
+    cbar = kwargs.get("cbar", False)
+    for i, a in enumerate(ax):
+        if cbar: plt.colorbar(ims[i], ax = a)
+        a.set_xlabel(D.axis0_label, fontsize = 9)
+        a.set_ylabel(D.axis1_label, fontsize = 9)
+        a.invert_yaxis()
+        
+    if not type(fig) is type(None): fig.tight_layout()
+    return ax
 
 
 
@@ -250,12 +343,13 @@ def _plot_data_spin_map(D = None, ax = None, **kwargs):
     try:
         if kwargs.get("help", False):
             print(f"{Fore.BLUE}Keyword arguments:")
-            print("polarity       integer       default 0, pass -1 or 1 for only positive or only negative Negative(!) polarity (yes...)")
+            print("polarity       integer       default 0, pass -1 or 1 for only positive or only negative NegativePolarity")
             print("asymmetry      bool          applicable for data from asymmetry()")
             print("mean           bool          applicable for data from asymmetry()")
             print("components     bool          applicable for data from asymmetry()")
-            print("show.          bool          applicable for data from asymmetry()")
-            print("cbar           bool          colorbar (default False)")
+            print("show           bool          applicable for data from asymmetry()")
+            print("cbar           bool          colorbar")
+            print("cmap           bool          colorbar")
             print("vmin/vmax      scalars       sometimes applicable...")
             print(Fore.RESET)
     except: pass
@@ -287,8 +381,9 @@ def _plot_data_spin_map(D = None, ax = None, **kwargs):
     if asymmetry and not "asymmetry" in D._listAttributes(): asymmetry = False
     if components and not "component_plus" in D._listAttributes(): components = False
     if means and not "intensity_off" in D._listAttributes(): means = False
+    if show and not "intensity_off" in D._listAttributes(): means = False
     if not (asymmetry or components or means or maps or show): maps = True
-    print(show)
+    
     #
     if maps or show: 
         numax = len(D.intensity)
@@ -309,39 +404,59 @@ def _plot_data_spin_map(D = None, ax = None, **kwargs):
     if not type(cbar) is bool:
         print(f"{Fore.MAGENTA}The argument cbar must be a bool. Seeting cbar = False{Fore.RESET}."); cbar = False
     #
+    cmap = kwargs.get("cmap", None)
+    if not type(cmap) is str: cmap = None
+    #
+    vmin, vmax = kwargs.get("vmin", None), kwargs.get("vmax", None)
+    try: vmin, vmax = float(vmin), float(vmax)
+    except: vmin, vmax = None, None
+    #
     extent = [D.axis0[0], D.axis0[-1], D.axis1[-1], D.axis1[0]]
     ims = []
     if maps:
-        vmin, vmax = [], []
-        for mp in D.intensity:
-            vmin.append(mp.min()); vmax.append(mp.max())
-        vmin, vmax = min(vmin), max(vmax)
+        if type(vmin) is type(None):
+            vmin, vmax = [], []
+            for mp in D.intensity:
+                vmin.append(mp.min()); vmax.append(mp.max())
+            vmin, vmax = min(vmin), max(vmax)
+        if not type(cmap) is str: cmap = "hot"
         for i, mp in enumerate(D.intensity):
-            ims.append( ax[i].imshow(mp.T, aspect = "equal", vmin = vmin, vmax = vmax, extent = extent) )
+            ims.append( ax[i].imshow(mp.T, aspect = "equal", vmin = vmin, vmax = vmax, extent = extent, cmap = cmap) )
             ax[i].set_title(f"map {i}, neg. pol {D.parameter0[i]}", fontsize = 9)
     #
     elif components:
-        vmin = min([D.component_plus.min(), D.component_minus.min()])
-        vmax = min([D.component_plus.max(), D.component_minus.max()])
-        ims.append( ax[0].imshow(D.component_plus.T,   aspect = "equal", vmin = vmin, vmax = vmax, extent = extent) )
-        ims.append( ax[1].imshow(D.component_minus.T,  aspect = "equal", vmin = vmin, vmax = vmax, extent = extent) )  
+        if type(vmin) is type(None):
+            vmin = min([D.component_plus.min(), D.component_minus.min()])
+            vmax = min([D.component_plus.max(), D.component_minus.max()])
+        if not type(cmap) is str: cmap = "hot"
+        ims.append( ax[0].imshow(D.component_plus.T,   aspect = "equal", vmin = vmin, vmax = vmax, extent = extent, cmap = cmap) )
+        ims.append( ax[1].imshow(D.component_minus.T,  aspect = "equal", vmin = vmin, vmax = vmax, extent = extent, cmap = cmap) )  
         ax[0].set_title("component Plus", fontsize = 10)
         ax[1].set_title("component Minus", fontsize = 10)
     #
     elif means:
-        vmin = min([D.intensity_off.min(), D.intensity_on.min()])
-        vmax = min([D.intensity_off.max(), D.intensity_on.max()])
-        ims.append( ax[0].imshow(D.intensity_off.T, aspect = "equal", vmin = vmin, vmax = vmax, extent = extent) )
-        ims.append( ax[1].imshow(D.intensity_on.T,  aspect = "equal", vmin = vmin, vmax = vmax, extent = extent) )
+        if type(vmin) is type(None):
+            vmin = min([D.intensity_off.min(), D.intensity_on.min()])
+            vmax = min([D.intensity_off.max(), D.intensity_on.max()])
+        if not type(cmap) is str: cmap = "hot"
+        ims.append( ax[0].imshow(D.intensity_off.T, aspect = "equal", vmin = vmin, vmax = vmax, extent = extent, cmap = cmap) )
+        ims.append( ax[1].imshow(D.intensity_on.T,  aspect = "equal", vmin = vmin, vmax = vmax, extent = extent, cmap = cmap) )
         ax[0].set_title("mean intensity Off", fontsize = 10)
         ax[1].set_title("mean intensity On", fontsize = 10)
     elif asymmetry:
-        ims.append( ax[0].imshow(D.asymmetry.T, aspect = "equal", extent = extent, cmap = "bwr") )
+        if type(vmin) is type(None):
+            v = max([abs(D.asymmetry.min()), abs(D.asymmetry.max())])
+            vmin, vmax = -v, v
+        if not type(cmap) is str: cmap = "bwr"
+        ims.append( ax[0].imshow(D.asymmetry.T, aspect = "equal", extent = extent, cmap = cmap, vmin = vmin, vmax = vmax) )
         ax[0].set_title("asymmetry", fontsize = 10)
     elif show:
-        array = D.component_plus.T - D.component_minus.T
-        v = max([abs(array.min()), abs(array.max())])
-        ims.append( ax[0].imshow(D.component_plus.T - D.component_minus.T, aspect = "equal", extent = extent, cmap = "bwr", vmin = -v, vmax = v) )
+        array = (D.component_plus.T - D.component_minus.T) / (D.component_plus.T + D.component_minus.T)
+        if type(vmin) is type(None):
+            v = max([abs(array.min()), abs(array.max())])
+            vmin, vmax = -v, v
+        if not type(cmap) is str: cmap = "bwr"
+        ims.append( ax[0].imshow(D.component_plus.T - D.component_minus.T, aspect = "equal", extent = extent, cmap = "bwr", vmin = vmin, vmax = vmax) )
         ax[0].set_title("'show'", fontsize = 10)
     #
     for i, a in enumerate(ax):
@@ -362,7 +477,8 @@ def _plot_data_spin_polarization(D = object, ax = None, **kwargs):
     try:
         if kwargs.get("help", False):
             print(f"{Fore.BLUE}Keyword arguments:")
-            print(Fore.RESET)
+            print("None, at the moment.")
+            print(f"{Fore.RESET}")
     except: pass
     #
     if "px" in D._listAttributes() and "py" in D._listAttributes() and "pz" in D._listAttributes(): fig_type = "xyz"

@@ -1,8 +1,9 @@
-__version__ = "25.11.26"
+__version__ = "25.12.07"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 25.12.07    General upgrades, mostly related to spin_arpes but also other stuff.
 Version 25.12.06    Adding rudimentary asymmetry for spin_arpes
 Version 25.11.27    Updates after data object update.
 Version 25.11.26    Updated projectSpin() so that it seems to work but keep an eye on it!

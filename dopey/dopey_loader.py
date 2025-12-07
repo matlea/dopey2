@@ -1,8 +1,9 @@
-__version__ = "25.11.25"
+__version__ = "25.12.07"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 25.12.07    General upgrades, mostly related to spin_arpes but also other stuff.
 Version 25.12.06    Adding rudimentary loader for spin_arpes
 Version 25.11.26    Bugfix (in loading plot() dopey_plot).
 Version 25.11.25    Added method plot() to the data object. Uses plot() from dopey_plot.py.
