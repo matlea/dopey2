@@ -1,8 +1,9 @@
-__version__ = "25.12.07"
+__version__ = "25.12.08"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 25.12.08    A bugfix in polarization() let to a minor update in the plotting.
 Version 25.12.07    General upgrades, mostly related to spin_arpes but also other stuff.
 Version 25.12.06    Adding rudimentary plot for spin_arpes
 Version 25.11.26    Updates after data object update.
@@ -601,22 +602,28 @@ def _plot_data_spin_polarization(D = object, ax = None, **kwargs):
     elif fig_type == "xyz" and dim == 2:
         fig, ax = plt.subplots(nrows = 3, ncols = 4, figsize = (12,9))
         
+        aspect = "auto"
+        if "map" in D.data_type:
+            aspect = "equal"
+        elif "arpes" in D.data_type:
+            aspect = "auto"
+        
         vmin = min([D.intensity_px_plus.min(), D.intensity_px_minus.min(), D.intensity_py_plus.min(), D.intensity_py_minus.min(), D.intensity_pz_plus.min(), D.intensity_pz_minus.min()])
         vmax = max([D.intensity_px_plus.max(), D.intensity_px_minus.max(), D.intensity_py_plus.max(), D.intensity_py_minus.max(), D.intensity_pz_plus.max(), D.intensity_pz_minus.max()])
                             
-        ax[0][0].imshow(D.intensity.T, extent = extent, aspect = "equal", cmap = "bone_r", vmin = vmin, vmax = vmax)
-        ax[0][1].imshow(D.px.T,        extent = extent, aspect = "equal", cmap = "bwr",    vmin = -1,   vmax = 1)
-        ax[1][0].imshow(D.intensity.T, extent = extent, aspect = "equal", cmap = "bone_r", vmin = vmin, vmax = vmax)
-        ax[1][1].imshow(D.py.T,        extent = extent, aspect = "equal", cmap = "bwr",    vmin = -1,   vmax = 1)
-        ax[2][0].imshow(D.intensity.T, extent = extent, aspect = "equal", cmap = "bone_r", vmin = vmin, vmax = vmax)
-        ax[2][1].imshow(D.pz.T,        extent = extent, aspect = "equal", cmap = "bwr",    vmin = -1,   vmax = 1)
+        ax[0][0].imshow(D.intensity.T, extent = extent, aspect = aspect, cmap = "bone_r", vmin = vmin, vmax = vmax)
+        ax[0][1].imshow(D.px.T,        extent = extent, aspect = aspect, cmap = "bwr",    vmin = -1,   vmax = 1)
+        ax[1][0].imshow(D.intensity.T, extent = extent, aspect = aspect, cmap = "bone_r", vmin = vmin, vmax = vmax)
+        ax[1][1].imshow(D.py.T,        extent = extent, aspect = aspect, cmap = "bwr",    vmin = -1,   vmax = 1)
+        ax[2][0].imshow(D.intensity.T, extent = extent, aspect = aspect, cmap = "bone_r", vmin = vmin, vmax = vmax)
+        ax[2][1].imshow(D.pz.T,        extent = extent, aspect = aspect, cmap = "bwr",    vmin = -1,   vmax = 1)
         
-        ax[0][2].imshow(D.intensity_px_plus.T,  extent = extent, aspect = "equal", cmap = "bone_r", vmin = vmin, vmax = vmax)
-        ax[0][3].imshow(D.intensity_px_minus.T, extent = extent, aspect = "equal", cmap = "bone_r", vmin = vmin, vmax = vmax)
-        ax[1][2].imshow(D.intensity_px_plus.T,  extent = extent, aspect = "equal", cmap = "bone_r", vmin = vmin, vmax = vmax)
-        ax[1][3].imshow(D.intensity_px_minus.T, extent = extent, aspect = "equal", cmap = "bone_r", vmin = vmin, vmax = vmax)
-        ax[2][2].imshow(D.intensity_pz_plus.T,  extent = extent, aspect = "equal", cmap = "bone_r", vmin = vmin, vmax = vmax)
-        ax[2][3].imshow(D.intensity_pz_minus.T, extent = extent, aspect = "equal", cmap = "bone_r", vmin = vmin, vmax = vmax)
+        ax[0][2].imshow(D.intensity_px_plus.T,  extent = extent, aspect = aspect, cmap = "bone_r", vmin = vmin, vmax = vmax)
+        ax[0][3].imshow(D.intensity_px_minus.T, extent = extent, aspect = aspect, cmap = "bone_r", vmin = vmin, vmax = vmax)
+        ax[1][2].imshow(D.intensity_px_plus.T,  extent = extent, aspect = aspect, cmap = "bone_r", vmin = vmin, vmax = vmax)
+        ax[1][3].imshow(D.intensity_px_minus.T, extent = extent, aspect = aspect, cmap = "bone_r", vmin = vmin, vmax = vmax)
+        ax[2][2].imshow(D.intensity_pz_plus.T,  extent = extent, aspect = aspect, cmap = "bone_r", vmin = vmin, vmax = vmax)
+        ax[2][3].imshow(D.intensity_pz_minus.T, extent = extent, aspect = aspect, cmap = "bone_r", vmin = vmin, vmax = vmax)
         
         for i, ttl in enumerate(["Total intensity", "", "-intensity Plus", "-intensity Minus"]):
             for j in [0,1,2]:
@@ -635,15 +642,15 @@ def _plot_data_spin_polarization(D = object, ax = None, **kwargs):
         vmin = min([D.intensity_px_plus.min(), D.intensity_px_minus.min(), D.intensity_py_plus.min(), D.intensity_py_minus.min()])
         vmax = max([D.intensity_px_plus.max(), D.intensity_px_minus.max(), D.intensity_py_plus.max(), D.intensity_py_minus.max()])
                             
-        ax[0][0].imshow(D.intensity.T, extent = extent, aspect = "equal", cmap = "bone_r", vmin = vmin, vmax = vmax)
-        ax[0][1].imshow(D.px.T,        extent = extent, aspect = "equal", cmap = "bwr",    vmin = -1,   vmax = 1)
-        ax[1][0].imshow(D.intensity.T, extent = extent, aspect = "equal", cmap = "bone_r", vmin = vmin, vmax = vmax)
-        ax[1][1].imshow(D.py.T,        extent = extent, aspect = "equal", cmap = "bwr",    vmin = -1,   vmax = 1)
+        ax[0][0].imshow(D.intensity.T, extent = extent, aspect = aspect, cmap = "bone_r", vmin = vmin, vmax = vmax)
+        ax[0][1].imshow(D.px.T,        extent = extent, aspect = aspect, cmap = "bwr",    vmin = -1,   vmax = 1)
+        ax[1][0].imshow(D.intensity.T, extent = extent, aspect = aspect, cmap = "bone_r", vmin = vmin, vmax = vmax)
+        ax[1][1].imshow(D.py.T,        extent = extent, aspect = aspect, cmap = "bwr",    vmin = -1,   vmax = 1)
         
-        ax[0][2].imshow(D.intensity_px_plus.T,  extent = extent, aspect = "equal", cmap = "bone_r", vmin = vmin, vmax = vmax)
-        ax[0][3].imshow(D.intensity_px_minus.T, extent = extent, aspect = "equal", cmap = "bone_r", vmin = vmin, vmax = vmax)
-        ax[1][2].imshow(D.intensity_px_plus.T,  extent = extent, aspect = "equal", cmap = "bone_r", vmin = vmin, vmax = vmax)
-        ax[1][3].imshow(D.intensity_px_minus.T, extent = extent, aspect = "equal", cmap = "bone_r", vmin = vmin, vmax = vmax)
+        ax[0][2].imshow(D.intensity_px_plus.T,  extent = extent, aspect = aspect, cmap = "bone_r", vmin = vmin, vmax = vmax)
+        ax[0][3].imshow(D.intensity_px_minus.T, extent = extent, aspect = aspect, cmap = "bone_r", vmin = vmin, vmax = vmax)
+        ax[1][2].imshow(D.intensity_px_plus.T,  extent = extent, aspect = aspect, cmap = "bone_r", vmin = vmin, vmax = vmax)
+        ax[1][3].imshow(D.intensity_px_minus.T, extent = extent, aspect = aspect, cmap = "bone_r", vmin = vmin, vmax = vmax)
         
         for i, ttl in enumerate(["Total intensity", "", "-intensity Plus", "-intensity Minus"]):
             for j in [0,1]:
@@ -660,13 +667,13 @@ def _plot_data_spin_polarization(D = object, ax = None, **kwargs):
         fig, ax = plt.subplots(nrows = 1, ncols = 4, figsize = (12,2.4))
         
         ax[0].imshow(D.intensity.T, extent = extent, aspect = "equal", cmap = "bone_r")
-        ax[1].imshow(D.pz.T, extent = extent, aspect = "equal", cmap = "bwr", vmin = -1, vmax = 1)
+        ax[1].imshow(D.pz.T, extent = extent, aspect = aspect, cmap = "bwr", vmin = -1, vmax = 1)
         
         vmin = min([D.intensity_pz_plus.min(), D.intensity_pz_minus.min()])
         vmax = max([D.intensity_pz_plus.max(), D.intensity_pz_minus.max()])
         
-        ax[2].imshow(D.intensity_pz_plus.T, extent = extent, aspect = "equal", cmap = "bone_r", vmin = vmin, vmax = vmax)
-        ax[3].imshow(D.intensity_pz_minus.T, extent = extent, aspect = "equal", cmap = "bone_r", vmin = vmin, vmax = vmax)
+        ax[2].imshow(D.intensity_pz_plus.T, extent = extent, aspect = aspect, cmap = "bone_r", vmin = vmin, vmax = vmax)
+        ax[3].imshow(D.intensity_pz_minus.T, extent = extent, aspect = aspect, cmap = "bone_r", vmin = vmin, vmax = vmax)
         
         for a, ttl in zip(ax, ["Total intensity", "Pz", "Pz-intensity Plus", "Pz-intensity Minus"]):
             a.set_title(ttl, fontsize = 10)

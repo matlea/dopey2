@@ -1,8 +1,9 @@
-__version__ = "25.12.07"
+__version__ = "25.12.08"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 25.12.08    Bugfix in polarization(). Had forgotten to add 'spin_arpes' as data type.
 Version 25.12.07    General upgrades, mostly related to spin_arpes but also other stuff.
 Version 25.12.06    Adding rudimentary asymmetry for spin_arpes
 Version 25.11.27    Updates after data object update.
@@ -240,7 +241,7 @@ def polarization(**kwargs):
     if case == 1:  
         D._addProperty("axis0", c1rp.axis0)
         D._addProperty("axis0_label", c1rp.axis0_label)
-        if "map" in c1rp.data_type:
+        if "map" in c1rp.data_type or "arpes" in c1rp.data_type:
             D._addProperty("axis1", c1rp.axis1)
             D._addProperty("axis1_label", c1rp.axis1_label)
         #
@@ -255,7 +256,7 @@ def polarization(**kwargs):
     elif case == 2:
         D._addProperty("axis0", c2rp.axis0)
         D._addProperty("axis0_label", c2rp.axis0_label)
-        if "map" in c2rp.data_type:
+        if "map" in c2rp.data_type or "arpes" in c1rp.data_type:
             D._addProperty("axis1", c2rp.axis1)
             D._addProperty("axis1_label", c2rp.axis1_label)
         px = -(c2rp.asymmetry - c2rm.asymmetry) / np.sqrt(2.) / sherman
@@ -268,7 +269,7 @@ def polarization(**kwargs):
         else: c1 = deepcopy(c1rm)
         D._addProperty("axis0", c2rp.axis0)
         D._addProperty("axis0_label", c2rp.axis0_label)
-        if "map" in c2rp.data_type:
+        if "map" in c2rp.data_type or "arpes" in c1rp.data_type:
             D._addProperty("axis1", c2rp.axis1)
             D._addProperty("axis1_label", c2rp.axis1_label)
         px = -(c2rp.asymmetry - c2rm.asymmetry) / np.sqrt(2.) / sherman
@@ -281,7 +282,7 @@ def polarization(**kwargs):
     elif case == 4:  # Pz with two coil1 measurements but no Px compensation
         D._addProperty("axis0", c1rp.axis0)
         D._addProperty("axis0_label", c1rp.axis0_label)
-        if "map" in c1rp.data_type:
+        if "map" in c1rp.data_type or "arpes" in c1rp.data_type:
             D._addProperty("axis1", c1rp.axis1)
             D._addProperty("axis1_label", c1rp.axis1_label)
         pz = 1/np.cos(TA) * ( (c1rp.asymmetry + c1rm.asymmetry)/2/sherman )
@@ -292,7 +293,7 @@ def polarization(**kwargs):
         else: c1 = deepcopy(c1rm)
         D._addProperty("axis0", c1.axis0)
         D._addProperty("axis0_label", c1.axis0_label)
-        if "map" in c1.data_type:
+        if "map" in c1.data_type or "arpes" in c1rp.data_type:
             D._addProperty("axis1", c1.axis1)
             D._addProperty("axis1_label", c1.axis1_label)
         pz = 1/np.cos(TA) * ( c1.asymmetry/sherman )
@@ -392,7 +393,7 @@ def projectSpin(D = object, tilt = 0, polar = 0, azimuth = 0, **kwargs):
     Pass the output from the polarization() method plus arguments tilt, polar, and azimuth.
     Returns a data object.
     """
-    print(f"\n{Fore.MAGENTA}projectSpin(): I'm in development. {Style.BRIGHT}Verify that the output make sense.{Style.RESET_ALL}{Fore.RESET}\n")
+    print(f"\n{Fore.MAGENTA}projectSpin(): I'm in development. {Style.BRIGHT}Verify that the output make sense.{Style.RESET_ALL} Data type spin_arpes throws an error.{Fore.RESET}\n")
     #
     DD = deepcopy(D)
     #
