@@ -1,8 +1,9 @@
-__version__ = "25.12.08"
+__version__ = "26.01.28"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.01.28    Bugfix in asymmetry() and polarization().
 Version 25.12.08    Bugfix in polarization(). Had forgotten to add 'spin_arpes' as data type.
 Version 25.12.07    General upgrades, mostly related to spin_arpes but also other stuff.
 Version 25.12.06    Adding rudimentary asymmetry for spin_arpes
@@ -129,9 +130,13 @@ def asymmetry(D = object, **kwargs):
         DD._addProperty("asymmetry", (intensity1-intensity2)/(intensity1+intensity2))
         #
         dims = np.shape(DD.asymmetry)
-        for i in range(dims[0]):
-            for j in range(dims[1]):
-                if np.isnan(DD.asymmetry[i][j]): DD.asymmetry[i][j] = 0
+        if len(dims) == 1:
+            for i in range(dims[0]):
+                if np.isnan(DD.asymmetry[i]): DD.asymmetry[i] = 0
+        else:
+            for i in range(dims[0]):
+                for j in range(dims[1]):
+                    if np.isnan(DD.asymmetry[i][j]): DD.asymmetry[i][j] = 0
         #
         DD._addProperty("component_plus",  (intensity1 + intensity2) * (1 + DD.asymmetry))
         DD._addProperty("component_minus", (intensity1 + intensity2) * (1 - DD.asymmetry))
@@ -256,7 +261,7 @@ def polarization(**kwargs):
     elif case == 2:
         D._addProperty("axis0", c2rp.axis0)
         D._addProperty("axis0_label", c2rp.axis0_label)
-        if "map" in c2rp.data_type or "arpes" in c1rp.data_type:
+        if "map" in c2rp.data_type or "arpes" in c2rp.data_type:
             D._addProperty("axis1", c2rp.axis1)
             D._addProperty("axis1_label", c2rp.axis1_label)
         px = -(c2rp.asymmetry - c2rm.asymmetry) / np.sqrt(2.) / sherman
