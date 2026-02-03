@@ -1,8 +1,9 @@
-__version__ = "25.12.08"
+__version__ = "26.02.03"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.02.03    Updated (finished) _plot_data_ccd3d() and bugfixed _plot_data_ccd2d().
 Version 25.12.08    A bugfix in polarization() let to a minor update in the plotting.
 Version 25.12.07    General upgrades, mostly related to spin_arpes but also other stuff.
 Version 25.12.06    Adding rudimentary plot for spin_arpes
@@ -21,9 +22,9 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from copy import deepcopy
 
-try: from dopey.dopey_methods import fermiMapCut, subArray
+try: from dopey.dopey_methods import fermiMapCut, subArray, compact
 except: 
-    try: from dopey.dopey_methods import fermiMapCut, subArray
+    try: from dopey.dopey_methods import fermiMapCut, subArray, compact
     except: print(f"{Fore.RED}{__name__} could not import required methods from dopey_methods.{Fore.RESET}")
 
 try: 
@@ -89,7 +90,7 @@ def _plot_data_1d(D = object, ax = None, **kwargs):
     
 
 
-def _plot_data_ccd2d(D = object, ax = None, transpose = False, shup = False, **kwargs):
+def _plot_data_ccd2d(D = object, ax = None, cmap = "bone_r", shup = False, **kwargs):
     """
     """
     #
@@ -97,6 +98,8 @@ def _plot_data_ccd2d(D = object, ax = None, transpose = False, shup = False, **k
         if kwargs.get("help", False):
             print(f"{Fore.BLUE}Keyword arguments:")
             print("figsize     tuple")
+            print("transpose   bool")
+            print("cmap        string")
             print(Fore.RESET)
     except: pass
     #
@@ -106,15 +109,19 @@ def _plot_data_ccd2d(D = object, ax = None, transpose = False, shup = False, **k
     if type(ax) is type(None): fig, ax = plt.subplots(figsize = figsize)
     else: fig = None
     #
+    transpose = kwargs.get("transpose", False)
     if not type(transpose) is bool:
         print(f"{Fore.RED}The argument transpose must be a bool. Setting transpose = False.{Fore.RESET}"); transpose = False
+    #
+    if not type(cmap) is str:
+        print(f"{Fore.RED}The argument cmap must be a string. Setting cmap = 'bone_r'.{Fore.RESET}"); cmap = "bone_r"
     #
     axis0, axis1, intensity = D.axis0, D.axis1, D.intensity
     xlabel, ylabel = D.axis1_label, D.axis0_label
     if transpose: axis0, axis1, intensity, xlabel, ylabel = axis1, axis0, intensity.T, ylabel, xlabel
     #
     extent = [axis1[0], axis1[-1], axis0[-1], axis0[0]]
-    ims = ax.imshow(intensity, aspect = "auto", extent = extent)
+    ims = ax.imshow(intensity, aspect = "auto", extent = extent, cmap = cmap)
     ax.invert_yaxis()
     #
     ax.set_xlabel(xlabel)
@@ -743,13 +750,15 @@ def _plot_data_ccd3d(D = object, ax = None, **kwargs):
 
     def plot(E, DE, X, DX, Y, DY, CMAP):
         #fig, ax = plt.subplots(ncols = 3, figsize = (9,3))
-        fig, ax = plt.figure(figsize = (12,3)), []
-        gs = gridspec.GridSpec(1, 13)
-        ax.append(fig.add_subplot(gs[0, 0:3])) #0:2
-        ax.append(fig.add_subplot(gs[0, 3:6])) #2:4
-        ax.append(fig.add_subplot(gs[0, 8:11])) #5:7
-        ax.append(fig.add_subplot(gs[0, 6:8]))   #4
-        ax.append(fig.add_subplot(gs[0, 11:13]))   #7
+        fig, ax = plt.figure(figsize = (12,3.5)), []
+        gs = gridspec.GridSpec(2, 15)
+        ax.append(fig.add_subplot(gs[0:2, 0:3])) 
+        ax.append(fig.add_subplot(gs[0:2, 3:6])) 
+        ax.append(fig.add_subplot(gs[0:2, 6:9])) 
+        ax.append(fig.add_subplot(gs[0:2, 9:11])) 
+        ax.append(fig.add_subplot(gs[0:1, 11:15])) 
+        ax.append(fig.add_subplot(gs[1:2, 11:15])) 
+        
 
         #
         Emap = fermiMapCut(D, axis = "E", E1 = E-DE/2, E2 = E+DE/2).intensity.T
@@ -760,15 +769,27 @@ def _plot_data_ccd3d(D = object, ax = None, **kwargs):
         ax[2].imshow(Ymap, extent = extentY, aspect = "auto", cmap = CMAP)
         #
         ax[0].axvline(x = X, color = "red", linewidth = 0.7, linestyle = "--")
-        ax[0].axhline(y = Y, color = "red", linewidth = 0.7, linestyle = "--")
-        ax[1].axhline(y = E, color = "red", linewidth = 0.7, linestyle = "--")
-        ax[2].axhline(y = E, color = "red", linewidth = 0.7, linestyle = "--")
+        ax[0].axhline(y = Y, color = "green", linewidth = 0.7, linestyle = "--")
+        ax[1].axvline(x = Y, color = "green", linewidth = 0.7, linestyle = "--")
+        ax[1].axhline(y = E, color = "blue", linewidth = 0.7, linestyle = "--")
+        ax[2].axhline(y = E, color = "blue", linewidth = 0.7, linestyle = "--")
+        ax[2].axvline(x = X, color = "red", linewidth = 0.7, linestyle = "--")
         #
-        tmp = subArray(D, axis = 0, a1 = X-DX/2, a2 = X+DX/2, shup = True )
-        tmp = subArray(tmp, axis = 0, a1 = X-DX/2, a2 = X+DX/2, shup = True )
+        edc = subArray(D, axis = 0, a1 = X-DX/2, a2 = X+DX/2, shup = True )
+        edc = subArray(edc, axis = 1, a1 = Y-DY/2, a2 = Y+DY/2, shup = True )
+        edc = compact(edc, axis = 0)
+        edc = compact(edc, axis = 0)
+        ax[3].plot(edc.intensity, edc.axis0, color = "k", linewidth = 0.75)
+        mdc = subArray(D, axis = 2, a1 = E-DE/2, a2 = E+DE/2, shup = True )
+        mdcY = subArray(mdc, axis = 0, a1 = X-DX/2, a2 = X+DX/2, shup = True )
+        mdcY = compact(mdcY, axis = 0)
+        mdcX = subArray(mdc, axis = 1, a1 = Y-DY/2, a2 = Y+DY/2, shup = True )
+        mdcX = compact(mdcX, axis = 1)
+        ax[4].plot(mdcY.axis0, mdcY.intensity, color = "k", linewidth = 0.75)
+        ax[5].plot(mdcX.axis0, mdcX.intensity, color = "k", linewidth = 0.75)
         #
-        for i, txt in enumerate(["X-Y", "Y-E", "X-E"]): 
-            ax[i].invert_yaxis()
+        for i, txt in enumerate(["X-Y", "Y-E", "X-E", "EDC", "MDC (Y)", "MDC (X)"]): 
+            if i < 3: ax[i].invert_yaxis()
             ax[i].set_title(txt, fontsize = 10)
         ax[0].set_ylabel("ThetaY", fontsize = 9)
         ax[0].set_xlabel("ShiftX", fontsize = 9)
