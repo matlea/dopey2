@@ -1,8 +1,9 @@
-__version__ = "25.11.25"
+__version__ = "26.02.03"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.02.03    Updated compact(). Now handles ccd_2d and ccd3d.
 Version 25.11.25    A very, very minor change. Barely worth mentioning.
 Version 25.10.20    Added method align(fermi map).
 Version 25.10.08    The first version.
@@ -139,6 +140,24 @@ def compact(D = object, **kwargs):
             del DD.__dict__["__axis1"]
             del DD.__dict__["__axis1_label"]
             DD.data_type = "1d"
+        elif int_dim == 3:
+            DD.intensity = D.intensity.sum(axis = axis)
+            if axis == 0:
+                DD.axis0 = DD.axis1
+                DD.axis0_label = DD.axis1_label
+                DD.axis1 = DD.axis2
+                DD.axis1_label = DD.axis2_label
+                del DD.__dict__["__axis2"]
+                del DD.__dict__["__axis2_label"]
+            elif axis == 1:
+                DD.axis1 = DD.axis2
+                DD.axis1_label = DD.axis2_label
+                del DD.__dict__["__axis2"]
+                del DD.__dict__["__axis2_label"]
+            elif axis == 2:
+                del DD.__dict__["__axis2"]
+                del DD.__dict__["__axis2_label"]
+            DD.data_type = "ccd_2d"
         else:
            print(f"{Fore.MAGENTA}I am not ready for this type of data yet...{Fore.RESET}"); return DD 
                 
