@@ -1,8 +1,9 @@
-__version__ = "26.02.03"
+__version__ = "26.02.08"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.02.08    Added slice3D().
 Version 26.02.03    Updated (finished) _plot_data_ccd3d() and bugfixed _plot_data_ccd2d().
 Version 25.12.08    A bugfix in polarization() let to a minor update in the plotting.
 Version 25.12.07    General upgrades, mostly related to spin_arpes but also other stuff.
@@ -814,3 +815,225 @@ def _plot_data_ccd3d(D = object, ax = None, **kwargs):
     box_out = ipw.VBox([Interact, box1, DropdownCMAP])
     box_out.layout = ipw.Layout(border="solid 1px gray", margin="5px", padding="2")
     display(box_out)
+    
+    
+    
+    
+    
+
+
+
+def slice3D(D = object, axis = None, result = False, shup = False):
+    """
+    Interactive.
+    Slice and cut 2D and 1D data out of 3D data. 
+    
+    Arguments:
+    
+        D       dopey data object   A dopey data object containing 3D data.
+        axis    str                 'x', 'y', or 'z'. Axis perpendicular to the cut.
+        result  bool                slice3D() returns a dict with arrays if True.
+        shup    bool                Mute printed text if True (does not apply to errors).
+    
+    How to use the result argument, example:
+    
+        dopObj = dopey.load('fermi_map.xy', shup = True)
+        data = slide3D(D = dopObj, axis = 'z', result = True) # the z-axis is the kinetic energy axis
+        
+        The dict data contains keys 'axis1', and 'axis2', and 'intensity0', 'intensity1', and 'intensity2'.
+        
+        axis1:      a 1d array, in this case the ShiftX axis.
+        axis2:      a 1d array, in this case the ThetaY axis.
+        intensity0: a 2d array, the intensity vs ShiftX and ThetaY.
+        intensity1: a 1d array, the intensity profile along ShiftX.
+        intensity2: a 1d array, the intensity profile along ShiftY.
+        
+        The dict also contains key 'extent' to use with pyplot's imshow(), as well as 'parameters' which is a dict.
+    
+    """
+    if not type(shup) is bool:
+        print(f"{Fore.MAGENTA}Argument shup must be a bool so I'm ignoring your input.{Fore.RESET}"); shup = False
+    #
+    try: d_type = D.data_type
+    except:
+        print(f"{Fore.RED}I expected a dopey data object as argument D.{Fore.RESET}"); return
+    dim_size = len(np.shape(D.intensity))
+    if not dim_size == 3:
+        print(f"{Fore.RED}I expected a dopey data object with dimension 3 as argument D.{Fore.RESET}"); return
+    #
+    if type(result) is bool:
+        if result: data  = {}
+    else:
+        print(f"{Fore.RED}I expected the result argument to be a bool. Ignoring it. See help(slice3D) for info.{Fore.RESET}"); 
+        result = False
+    #
+    try: axis0, axis0_label = D.axis0, D.axis0_label
+    except: axis0, axis0_label = [], ""
+    try: axis1, axis1_label = D.axis1, D.axis1_label
+    except: axis1, axis1_label = [], ""
+    try: axis2, axis2_label = D.axis2, D.axis2_label
+    except: axis2, axis2_label = [], ""
+    #
+    if len(axis0) == 0 or len(axis1) == 0 or len(axis2) == 0:
+        print(f"{Fore.RED}I expected a dopey data object 3d intensity and 3 axis as argument D.{Fore.RESET}"); return
+    #
+    if not shup:
+        print(f"The intensity has the shape {np.shape(D.intensity)}")
+        print(f"The three axis are:")
+        print(f"  x: {D.axis0_label} ({len(axis0)})")
+        print(f"  y: {D.axis1_label} ({len(axis1)})")
+        print(f"  z: {D.axis2_label} ({len(axis2)})")
+    #
+    if type(axis) is str: axis = axis.lower()
+    else:
+        print(f"{Fore.RED}I expected a string ('x', 'y', or 'z') for the axis argument.{Fore.RESET}"); return
+    #
+    if not axis in ['x', 'y', 'z']:
+        print(f"{Fore.RED}I expected the argument axis to be one of 'x', 'y', or 'z'.{Fore.RESET}"); return
+    #
+    if not shup and not result:
+        print(f"{Fore.MAGENTA}(If you want to use the cut and profiles then pass result = True. Use help(slice3D) for instructions){Fore.RESET}"); 
+    #
+    if axis   == "x":
+        axis_0, axis_1, axis_2 = axis0, axis1, axis2
+        axis_0_label, axis_1_label, axis_2_label = axis0_label, axis1_label, axis2_label
+    elif axis == "y":
+        axis_0, axis_1, axis_2 = axis1, axis0, axis2
+        axis_0_label, axis_1_label, axis_2_label = axis1_label, axis0_label, axis2_label
+    elif axis == "z":
+        axis_0, axis_1, axis_2 = axis2, axis0, axis1
+        axis_0_label, axis_1_label, axis_2_label = axis2_label, axis0_label, axis1_label
+    #
+    if "ordinate range" in axis_0_label: axis_0_label = "ThetaY"
+    if "ordinate range" in axis_1_label: axis_1_label = "ThetaY"
+    if "ordinate range" in axis_2_label: axis_2_label = "ThetaY"
+    if " [a.u.]" in axis_0_label: axis_0_label = axis_0_label.replace("[a.u.]", "")
+    if " [a.u.]" in axis_1_label: axis_1_label = axis_1_label.replace("[a.u.]", "")
+    if " [a.u.]" in axis_2_label: axis_2_label = axis_2_label.replace("[a.u.]", "")
+    if " (eV)" in axis_0_label: axis_0_label = axis_0_label.replace(" (eV)", "")
+    if " (eV)" in axis_1_label: axis_1_label = axis_1_label.replace(" (eV)", "")
+    if " (eV)" in axis_2_label: axis_2_label = axis_2_label.replace(" (eV)", "")
+    #
+    extent = [axis_1[0], axis_1[-1], axis_2[-1], axis_2[0]]
+    #
+    step_0 = (axis_0[-1]-axis_0[0])/(len(axis0)-1)
+    axis_0_slider = ipw.FloatSlider(min = axis_0[0], max = axis_0[-1], step = step_0, description = "value", value = axis_0.mean(), readout_format = ".3f")
+    axis_0_delta = ipw.FloatSlider(min = step_0, max = 20*step_0, step = step_0, description = "delta", value = 2*step_0, readout_format = ".3f")
+    #
+    step_1 = (axis_1[-1]-axis_1[0])/(len(axis1)-1)
+    axis_1_slider = ipw.FloatSlider(min = axis_1[0], max = axis_1[-1], step = step_1, description = "value", value = axis_1.mean(), readout_format = ".3f")
+    axis_1_delta = ipw.FloatSlider(min = step_1, max = 20*step_1, step = step_1, description = "delta", value = 2*step_1, readout_format = ".3f")
+    #
+    step_2 = (axis_2[-1]-axis_2[0])/(len(axis2)-1)
+    axis_2_slider = ipw.FloatSlider(min = axis_2[0], max = axis_2[-1], step = step_2, description = "value", value = axis_2.mean(), readout_format = ".3f")
+    axis_2_delta = ipw.FloatSlider(min = step_2, max = 20*step_2, step = step_2, description = "delta", value = 2*step_2, readout_format = ".3f")
+    #
+    int_min_slider = ipw.FloatSlider(min = 0, max = 1, step = 0.05, description = "min. int.", value = 0, readout_format = ".2f")
+    int_max_slider = ipw.FloatSlider(min = 0, max = 1, step = 0.05, description = "max. int.", value = 1, readout_format = ".2f")
+    #
+    aspect_checkbox = ipw.Checkbox(value=False, description='x-y aspect equal')
+    #
+    box1 = ipw.VBox([ipw.VBox([ipw.Text(value = f"Z-axis ({axis_0_label})")]),
+                    ipw.VBox([axis_0_slider, axis_0_delta]), 
+                    ipw.VBox([ipw.Text(value = f"X-axis ({axis_1_label})")]),
+                    ipw.VBox([axis_1_slider, axis_1_delta]),
+                    ipw.VBox([ipw.Text(value = f"Y-axis ({axis_2_label})")]),
+                    ipw.VBox([axis_2_slider, axis_2_delta]),
+                    ipw.VBox([ipw.Text(value = "Options")]),
+                    ipw.VBox([int_min_slider, int_max_slider]), 
+                    ipw.VBox([aspect_checkbox]),
+                    ])
+    
+    def plot(axis_0_slider, axis_0_delta, axis_1_slider, axis_1_delta, axis_2_slider, axis_2_delta, int_min_slider, int_max_slider, aspect_checkbox,):
+        fig, ax = plt.figure(figsize = (9,4.5)), []
+        gs = gridspec.GridSpec(4, 10)
+        ax.append(fig.add_subplot(gs[0:4, 0:6])) # intensity map
+        ax.append(fig.add_subplot(gs[0:2, 6:10])) # Upper plot
+        ax.append(fig.add_subplot(gs[2:4, 6:10])) # right plot
+        
+        a01, a02 = axis_0_slider - axis_0_delta/2, axis_0_slider + axis_0_delta/2
+        i01 = abs(axis_0 - a01).argmin()
+        i02 = abs(axis_0 - a02).argmin()
+        if axis == "x": 
+            cut = D.intensity[i01:i02,:,:].sum(axis = 0).T
+        elif axis == "y": 
+            cut = D.intensity[:,i01:i02,:].sum(axis = 1).T
+        else: 
+            cut = D.intensity[:,:,i01:i02].sum(axis = 2).T
+        
+        imin, imax = cut.min(), cut.max()
+        irange = imax - imin
+        vmin = imin + irange * int_min_slider
+        vmax = imin + irange * int_max_slider
+        
+        if aspect_checkbox: aspect = "equal"
+        else: aspect = "auto"
+        
+        ims = ax[0].imshow(cut, extent = extent, aspect = aspect, vmin = vmin, vmax = vmax, cmap = "bone_r")
+        ax[0].invert_yaxis()
+        
+        a11, a12 = axis_1_slider - axis_1_delta/2, axis_1_slider + axis_1_delta/2
+        i11 = abs(axis_1 - a11).argmin()
+        i12 = abs(axis_1 - a12).argmin()
+        int1 = cut[:,i11:i12].sum(axis = 1)
+        a21, a22 = axis_2_slider - axis_2_delta/2, axis_2_slider + axis_2_delta/2
+        i21 = abs(axis_2 - a21).argmin()
+        i22 = abs(axis_2 - a22).argmin()
+        int2 = cut[i21:i22,:].sum(axis = 0)
+
+        ax[1].plot(axis_2, int1, color = "tab:blue", linewidth = 0.8)
+        ax[2].plot(axis_1, int2, color = "tab:red", linewidth = 0.8)
+        
+        ax[0].axvline(x = a11, color = "tab:blue", linewidth = 0.6)
+        ax[0].axvline(x = a12, color = "tab:blue", linewidth = 0.6)
+        ax[0].axhline(y = axis_2_slider - axis_2_delta/2, color = "tab:red", linewidth = 0.6)
+        ax[0].axhline(y = axis_2_slider + axis_2_delta/2, color = "tab:red", linewidth = 0.6)
+        
+        ax[0].set_title(f"{axis_0_label}-cut", fontsize = 10)
+        ax[0].set_xlabel(axis_1_label, fontsize = 10)
+        ax[0].set_ylabel(axis_2_label, fontsize = 10)
+        ax[1].set_xlabel(axis_2_label, fontsize = 10)
+        ax[2].set_xlabel(axis_1_label, fontsize = 10)
+        fig.tight_layout()
+        
+        if result:
+            data.update({"axis1": axis_1})
+            data.update({"axis2": axis_2})
+            data.update({"extent": [axis_1[0], axis_1[-1], axis_2[-1], axis_2[0]]})
+            data.update({"intensity0": cut})
+            data.update({"intensity1": int2})
+            data.update({"intensity2": int1})
+            data.update({"parameters": {"axis0": axis_0_slider,
+                                        "axis1": axis_1_slider,
+                                        "axis2": axis_2_slider,
+                                        "axis0_delta": axis_0_delta,
+                                        "axis1_delta": axis_1_delta,
+                                        "axis2_delta": axis_2_delta,
+                                        "axis0_label": axis_0_label,
+                                        "axis1_label": axis_1_label,
+                                        "axis2_label": axis_2_label}})
+    
+    Interact = ipw.interactive_output(plot, {'axis_0_slider': axis_0_slider, 
+                                             'axis_0_delta': axis_0_delta, 
+                                             "axis_1_slider": axis_1_slider,
+                                             'axis_1_delta': axis_1_delta,
+                                             "axis_2_slider": axis_2_slider,
+                                             "axis_2_delta": axis_2_delta,
+                                             "int_min_slider": int_min_slider,
+                                             "int_max_slider": int_max_slider,
+                                             'aspect_checkbox': aspect_checkbox,
+                                             })
+    
+    
+    box_out = ipw.HBox([Interact, box1,])
+    box_out.layout = ipw.Layout(border="solid 1px gray", margin="5px", padding="2")
+    display(box_out)
+    
+    if result: return data
+    
+    
+        
+    
+        
+    
+    
