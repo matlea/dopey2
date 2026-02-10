@@ -1,10 +1,15 @@
 __author__ = "Mats Leandersson"
-__version__ = "2025.11.24"
+__version__ = "2026.02.10"
 
 
 from colorama import Fore
 
 import_errors = []
+
+
+try: from dopey.dopey_data_object import *
+except Exception as E: 
+    print(f"  {Fore.RED}{'dopey_data_object':<25}{Fore.RESET}"); import_errors.append(E)
 
 try:  from dopey.dopey_constants import *
 except Exception as E: 

@@ -5,6 +5,7 @@ __author__  = "Mats Leandersson"
 """
 Version 26.02.10    Updated slice3D() to return a dopey data object instead of a dict. The data type is "from3D".
                     Also added _plot_data_from3d() to plot() to easily plot this data type.
+                    Minot update regarding DataObject() in dopey_data_object.py
 Version 26.02.08    Added slice3D().
 Version 26.02.03    Updated (finished) _plot_data_ccd3d() and bugfixed _plot_data_ccd2d().
 Version 25.12.08    A bugfix in polarization() let to a minor update in the plotting.
@@ -25,15 +26,16 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from copy import deepcopy
 
+try: from dopey_data_object import *
+except:
+    try: from dopey.dopey_data_object import *
+    except:
+        print(f"{Fore.RED}dopey_plot could not import from dopey_data_object.{Fore.RESET}")
+
 try: from dopey_methods import fermiMapCut, subArray, compact
 except: 
     try: from dopey.dopey_methods import fermiMapCut, subArray, compact
     except: print(f"{Fore.RED}{__name__} could not import required methods from dopey_methods.{Fore.RESET}")
-
-try: from dopey_loader import _DataObject
-except:
-    try: from dopey.dopey_loader import _DataObject
-    except: print(f"{Fore.RED}{__name__} could not import some objects from dopey_loader.{Fore.RESET}")
     
 try: 
     import ipywidgets as ipw
@@ -962,7 +964,7 @@ def slice3D(D = object, axis = None, shup = False):
         axis_0, axis_1, axis_2 = axis2, axis0, axis1
         axis_0_label, axis_1_label, axis_2_label = axis2_label, axis0_label, axis1_label
     #
-    retD = _DataObject()
+    retD = DataObject()
     retD._addProperty("data_type", "from3d")
     retD._addProperty("intensity0", np.array([]))
     retD._addProperty("intensity1", np.array([]))

@@ -1,8 +1,9 @@
-__version__ = "26.01.28"
+__version__ = "26.02.10"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.02.10    Minor update regarding DataObject.
 Version 26.01.28    Bugfix in asymmetry() and polarization().
 Version 25.12.08    Bugfix in polarization(). Had forgotten to add 'spin_arpes' as data type.
 Version 25.12.07    General upgrades, mostly related to spin_arpes but also other stuff.
@@ -36,11 +37,11 @@ except:
         print(Fore.RED + "dopey_loader.py: coluld not import from dopey_constants.py" + Fore.RESET)
         SHERMAN = 0.29
 
-try: from dopey.dopey_loader import _DataObject
+try: from dopey_data_object import DataObject
 except:
-    try: from dopey_loader import _DataObject
+    try: from dopey.dopey_data_object import DataObject
     except:
-        print(Fore.RED + "dopey_spin.py: coluld not import from dopey_loader.py" + Fore.RESET)
+        print(Fore.RED + "dopey_spin.py: coluld not import from dopey_data_object.py" + Fore.RESET)
 
 try: 
     import ipywidgets as ipw
@@ -184,7 +185,7 @@ def polarization(**kwargs):
             print(Fore.RESET)
     except: pass
     #
-    D = _DataObject()
+    D = DataObject()
     D._addProperty("data_type", "none")
     #
     c1rp, c1rp_yeah = kwargs.get("c1rp", None), False
