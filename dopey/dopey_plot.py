@@ -1,8 +1,10 @@
-__version__ = "26.02.08"
+__version__ = "26.02.10"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.02.10    Updated slice3D() to return a dopey data object instead of a dict. The data type is "from3D".
+                    Also added _plot_data_from3d() to plot() to easily plot this data type.
 Version 26.02.08    Added slice3D().
 Version 26.02.03    Updated (finished) _plot_data_ccd3d() and bugfixed _plot_data_ccd2d().
 Version 25.12.08    A bugfix in polarization() let to a minor update in the plotting.
@@ -23,11 +25,16 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from copy import deepcopy
 
-try: from dopey.dopey_methods import fermiMapCut, subArray, compact
+try: from dopey_methods import fermiMapCut, subArray, compact
 except: 
     try: from dopey.dopey_methods import fermiMapCut, subArray, compact
     except: print(f"{Fore.RED}{__name__} could not import required methods from dopey_methods.{Fore.RESET}")
 
+try: from dopey_loader import _DataObject
+except:
+    try: from dopey.dopey_loader import _DataObject
+    except: print(f"{Fore.RED}{__name__} could not import some objects from dopey_loader.{Fore.RESET}")
+    
 try: 
     import ipywidgets as ipw
     from IPython.display import display
@@ -62,6 +69,7 @@ def plot(D = object, ax = None, **kwargs):
     if D.data_type == "spin_map": return _plot_data_spin_map(D = D, ax = ax, **kwargs)
     if D.data_type == "spin_polarization": return _plot_data_spin_polarization(D = D, ax = ax, **kwargs)
     if D.data_type == "ccd_3d": return _plot_data_ccd3d(D = D, ax = ax, **kwargs)
+    if D.data_type == "from3d": return _plot_data_from3d(D = D, ax = ax, **kwargs)
         
 
 
@@ -219,7 +227,6 @@ def _plot_data_spin_edc(D = object, ax = None, **kwargs):
         ax.legend(fontsize = 8)
     #
     ax.set_xlabel(D.axis0_label)
-    
     #
     if not type(fig) is type(None): fig.tight_layout()
     return ax
@@ -818,12 +825,73 @@ def _plot_data_ccd3d(D = object, ax = None, **kwargs):
     
     
     
+
+
+def _plot_data_from3d(D = object, ax = None, cmap = "bone_r", shup = False, **kwargs):
+    """
+    """
+    #
+    try:
+        if kwargs.get("help", False):
+            print(f"{Fore.BLUE}Keyword arguments:")
+            print("output       integer     0 (cut), 1 (profile 1), or 2 (profile 2)")
+            print("figsize      tuple")
+            print("transpose    bool")
+            print("aspect       string      'auto' or 'equal'.")
+            print("cmap         string")
+            print(Fore.RESET)
+    except: pass
+    #
+    output = kwargs.get("output", 0)
+    if not type(output) is int:
+        print(f"{Fore.MAGENTA}The argument output must be an integer (0, 1, or 2). Setting output = 0.{Fore.RESET}")
+        output = 0
+    if not output in [0,1,2]:
+        print(f"{Fore.MAGENTA}The argument output must be an integer (0, 1, or 2). Setting output = 0.{Fore.RESET}")
+        output = 0
+    #
+    figsize = kwargs.get("figsize", (-1,-1))
+    if not type(figsize) is tuple:
+        print(f"{Fore.MAGENTA}The argument figsize must be a tuple. Setting it to default.{Fore.RESET}")
+        figsize = (-1,-1)
+    if figsize == (-1,-1):
+        if output == 0: figsize = (3,3)
+        else: figsize = (5,3)
+    #
+    if type(ax) is type(None): fig, ax = plt.subplots(figsize = figsize)
+    else: fig = None
+    #
+    transpose = kwargs.get("transpose", False)
+    if not type(transpose) is bool:
+        print(f"{Fore.MAGENTA}The argument transpose must be a bool. Setting transpose = False.{Fore.RESET}"); transpose = False
+    #
+    if not type(cmap) is str:
+        print(f"{Fore.RED}The argument cmap must be a string. Setting cmap = 'bone_r'.{Fore.RESET}"); cmap = "bone_r"
+    #
+    aspect = kwargs.get("aspect", "auto")
+    if not type(aspect) is str:
+        print(f"{Fore.RED}The argument aspect must be a string ('auto' or 'equal'). Setting aspect = 'auto'.{Fore.RESET}"); aspect = "auto"
+    #
+    if output == 0:
+        extent = [D.axis1[0], D.axis1[-1], D.axis2[-1], D.axis2[0]]
+        _ = ax.imshow(D.intensity0, extent = extent, aspect = aspect, cmap = cmap)
+        ax.invert_yaxis()
+        ax.set_xlabel(D.params["axis1_label"])
+        ax.set_ylabel(D.params["axis2_label"])
+    elif output == 1: 
+        _ = ax.plot(D.axis1, D.intensity1, linewidth = 0.65, color = "k")
+        ax.set_xlabel(D.params["axis1_label"])
+    elif output == 2: 
+        _ = ax.plot(D.axis2, D.intensity2, linewidth = 0.65, color = "k")
+        ax.set_xlabel(D.params["axis2_label"])
+    #
+    return ax
+        
     
-    
 
 
 
-def slice3D(D = object, axis = None, result = False, shup = False):
+def slice3D(D = object, axis = None, shup = False):
     """
     Interactive.
     Slice and cut 2D and 1D data out of 3D data. 
@@ -832,15 +900,14 @@ def slice3D(D = object, axis = None, result = False, shup = False):
     
         D       dopey data object   A dopey data object containing 3D data.
         axis    str                 'x', 'y', or 'z'. Axis perpendicular to the cut.
-        result  bool                slice3D() returns a dict with arrays if True.
         shup    bool                Mute printed text if True (does not apply to errors).
     
-    How to use the result argument, example:
+    Example:
     
         dopObj = dopey.load('fermi_map.xy', shup = True)
-        data = slide3D(D = dopObj, axis = 'z', result = True) # the z-axis is the kinetic energy axis
+        data = slide3D(D = dopObj, axis = 'z') # the z-axis is the kinetic energy axis
         
-        The dict data contains keys 'axis1', and 'axis2', and 'intensity0', 'intensity1', and 'intensity2'.
+        data contains, among other, attributes 'axis1', and 'axis2', and 'intensity0', 'intensity1', and 'intensity2'.
         
         axis1:      a 1d array, in this case the ShiftX axis.
         axis2:      a 1d array, in this case the ThetaY axis.
@@ -848,7 +915,7 @@ def slice3D(D = object, axis = None, result = False, shup = False):
         intensity1: a 1d array, the intensity profile along ShiftX.
         intensity2: a 1d array, the intensity profile along ShiftY.
         
-        The dict also contains key 'extent' to use with pyplot's imshow(), as well as 'parameters' which is a dict.
+        The dict also contains 'parameters' which is a dict, plus some other attributes. See data.info.
     
     """
     if not type(shup) is bool:
@@ -860,12 +927,6 @@ def slice3D(D = object, axis = None, result = False, shup = False):
     dim_size = len(np.shape(D.intensity))
     if not dim_size == 3:
         print(f"{Fore.RED}I expected a dopey data object with dimension 3 as argument D.{Fore.RESET}"); return
-    #
-    if type(result) is bool:
-        if result: data  = {}
-    else:
-        print(f"{Fore.RED}I expected the result argument to be a bool. Ignoring it. See help(slice3D) for info.{Fore.RESET}"); 
-        result = False
     #
     try: axis0, axis0_label = D.axis0, D.axis0_label
     except: axis0, axis0_label = [], ""
@@ -891,9 +952,6 @@ def slice3D(D = object, axis = None, result = False, shup = False):
     if not axis in ['x', 'y', 'z']:
         print(f"{Fore.RED}I expected the argument axis to be one of 'x', 'y', or 'z'.{Fore.RESET}"); return
     #
-    if not shup and not result:
-        print(f"{Fore.MAGENTA}(If you want to use the cut and profiles then pass result = True. Use help(slice3D) for instructions){Fore.RESET}"); 
-    #
     if axis   == "x":
         axis_0, axis_1, axis_2 = axis0, axis1, axis2
         axis_0_label, axis_1_label, axis_2_label = axis0_label, axis1_label, axis2_label
@@ -903,6 +961,22 @@ def slice3D(D = object, axis = None, result = False, shup = False):
     elif axis == "z":
         axis_0, axis_1, axis_2 = axis2, axis0, axis1
         axis_0_label, axis_1_label, axis_2_label = axis2_label, axis0_label, axis1_label
+    #
+    retD = _DataObject()
+    retD._addProperty("data_type", "from3d")
+    retD._addProperty("intensity0", np.array([]))
+    retD._addProperty("intensity1", np.array([]))
+    retD._addProperty("intensity2", np.array([]))
+    retD._addProperty("axis1", axis_1)
+    retD._addProperty("axis2", axis_2)
+    retD._addProperty("axis1_label", axis_1_label)
+    retD._addProperty("axis2_label", axis_2_label)
+    retD._addProperty("Analysis_Method", D.Analysis_Method)
+    retD._addProperty("Analyzer", D.Analyzer)
+    retD._addProperty("Lens_Mode", D.Lens_Mode)
+    retD._addProperty("Scan_Mode", D.Scan_Mode)
+    retD._addProperty("params", {})
+    
     #
     if "ordinate range" in axis_0_label: axis_0_label = "ThetaY"
     if "ordinate range" in axis_1_label: axis_1_label = "ThetaY"
@@ -996,22 +1070,19 @@ def slice3D(D = object, axis = None, result = False, shup = False):
         ax[2].set_xlabel(axis_1_label, fontsize = 10)
         fig.tight_layout()
         
-        if result:
-            data.update({"axis1": axis_1})
-            data.update({"axis2": axis_2})
-            data.update({"extent": [axis_1[0], axis_1[-1], axis_2[-1], axis_2[0]]})
-            data.update({"intensity0": cut})
-            data.update({"intensity1": int2})
-            data.update({"intensity2": int1})
-            data.update({"parameters": {"axis0": axis_0_slider,
-                                        "axis1": axis_1_slider,
-                                        "axis2": axis_2_slider,
-                                        "axis0_delta": axis_0_delta,
-                                        "axis1_delta": axis_1_delta,
-                                        "axis2_delta": axis_2_delta,
-                                        "axis0_label": axis_0_label,
-                                        "axis1_label": axis_1_label,
-                                        "axis2_label": axis_2_label}})
+        retD.intensity0 = cut
+        retD.intensity1 = int2
+        retD.intensity2 = int1
+        retD.params = {"axis0": axis_0_slider,
+                        "axis1": axis_1_slider,
+                        "axis2": axis_2_slider,
+                        "axis0_delta": axis_0_delta,
+                        "axis1_delta": axis_1_delta,
+                        "axis2_delta": axis_2_delta,
+                        "axis0_label": axis_0_label,
+                        "axis1_label": axis_1_label,
+                        "axis2_label": axis_2_label}
+
     
     Interact = ipw.interactive_output(plot, {'axis_0_slider': axis_0_slider, 
                                              'axis_0_delta': axis_0_delta, 
@@ -1028,8 +1099,8 @@ def slice3D(D = object, axis = None, result = False, shup = False):
     box_out = ipw.HBox([Interact, box1,])
     box_out.layout = ipw.Layout(border="solid 1px gray", margin="5px", padding="2")
     display(box_out)
-    
-    if result: return data
+
+    return retD
     
     
         
