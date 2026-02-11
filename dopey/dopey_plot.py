@@ -1,8 +1,9 @@
-__version__ = "26.02.10"
+__version__ = "26.02.11"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.02.10    Updated slice3D() to take more advantage of DataObject(). Also updated _plot_data_from3d() to follow.
 Version 26.02.10    Updated slice3D() to return a dopey data object instead of a dict. The data type is "from3D".
                     Also added _plot_data_from3d() to plot() to easily plot this data type.
                     Minot update regarding DataObject() in dopey_data_object.py
@@ -878,14 +879,18 @@ def _plot_data_from3d(D = object, ax = None, cmap = "bone_r", shup = False, **kw
         extent = [D.axis1[0], D.axis1[-1], D.axis2[-1], D.axis2[0]]
         _ = ax.imshow(D.intensity0, extent = extent, aspect = aspect, cmap = cmap)
         ax.invert_yaxis()
-        ax.set_xlabel(D.params["axis1_label"])
-        ax.set_ylabel(D.params["axis2_label"])
+        #ax.set_xlabel(D.params["axis1_label"])
+        ax.set_xlabel(D.params.axis1_label)
+        #ax.set_ylabel(D.params["axis2_label"])
+        ax.set_ylabel(D.params.axis2_label)
     elif output == 1: 
         _ = ax.plot(D.axis1, D.intensity1, linewidth = 0.65, color = "k")
-        ax.set_xlabel(D.params["axis1_label"])
+        #ax.set_xlabel(D.params["axis1_label"])
+        ax.set_xlabel(D.params.axis1_label)
     elif output == 2: 
         _ = ax.plot(D.axis2, D.intensity2, linewidth = 0.65, color = "k")
-        ax.set_xlabel(D.params["axis2_label"])
+        #ax.set_xlabel(D.params["axis2_label"])
+        ax.set_xlabel(D.params.axis2_label)
     #
     return ax
         
@@ -917,7 +922,7 @@ def slice3D(D = object, axis = None, shup = False):
         intensity1: a 1d array, the intensity profile along ShiftX.
         intensity2: a 1d array, the intensity profile along ShiftY.
         
-        The dict also contains 'parameters' which is a dict, plus some other attributes. See data.info.
+        data also contains 'parameters' with more attributes. See data.info and data.param.info
     
     """
     if not type(shup) is bool:
@@ -977,8 +982,17 @@ def slice3D(D = object, axis = None, shup = False):
     retD._addProperty("Analyzer", D.Analyzer)
     retD._addProperty("Lens_Mode", D.Lens_Mode)
     retD._addProperty("Scan_Mode", D.Scan_Mode)
-    retD._addProperty("params", {})
-    
+    retD_params = DataObject()
+    retD_params._addProperty("axis0", None)
+    retD_params._addProperty("axis1", None)
+    retD_params._addProperty("axis2", None)
+    retD_params._addProperty("axis0_delta", None)
+    retD_params._addProperty("axis1_delta", None)
+    retD_params._addProperty("axis2_delta", None)
+    retD_params._addProperty("axis0_label", axis_0_label)
+    retD_params._addProperty("axis1_label", axis_1_label)
+    retD_params._addProperty("axis2_label", axis_2_label)
+    retD._addProperty("params", retD_params)
     #
     if "ordinate range" in axis_0_label: axis_0_label = "ThetaY"
     if "ordinate range" in axis_1_label: axis_1_label = "ThetaY"
@@ -1075,16 +1089,16 @@ def slice3D(D = object, axis = None, shup = False):
         retD.intensity0 = cut
         retD.intensity1 = int2
         retD.intensity2 = int1
-        retD.params = {"axis0": axis_0_slider,
-                        "axis1": axis_1_slider,
-                        "axis2": axis_2_slider,
-                        "axis0_delta": axis_0_delta,
-                        "axis1_delta": axis_1_delta,
-                        "axis2_delta": axis_2_delta,
-                        "axis0_label": axis_0_label,
-                        "axis1_label": axis_1_label,
-                        "axis2_label": axis_2_label}
-
+        retD.params.axis0 = axis_0_slider
+        retD.params.axis1 = axis_1_slider
+        retD.params.axis2 = axis_2_slider
+        retD.params.axis0_delta = axis_0_delta
+        retD.params.axis1_delta = axis_1_delta
+        retD.params.axis2_delta = axis_2_delta
+        #retD.params.axis0_label = axis_0_label # These attributes have already gotten their values
+        #retD.params.axis1_label = axis_1_label
+        #retD.params.axis2_label = axis_2_label
+        
     
     Interact = ipw.interactive_output(plot, {'axis_0_slider': axis_0_slider, 
                                              'axis_0_delta': axis_0_delta, 
