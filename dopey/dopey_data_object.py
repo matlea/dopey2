@@ -2,6 +2,7 @@ __version__ = "26.02.10"
 __author__  = "Mats Leandersson"
 
 """
+version 26.02.14    Added hlp keyword argument (for consistency)
 version 26.02.10    Moving the _DataObject out of dopey_loader.py due to various reasons.
                     Renaming it DataObject.
 """
@@ -38,6 +39,7 @@ class DataObject():
         """
         """    
         self._addProperty("dopey", __version__)
+        if kwargs.get('hlp', False): help(self)
     
     def __str__(self):
         return dataInfo(self, ret = True)
@@ -100,15 +102,11 @@ def dataInfo(D = None, ret = False):
                 s = f"shape = {np.shape(item)}".ljust(25)
                 nk = f"{key}_label"
                 out += f"{key_name}{t}{s}{D.__dict__.get(nk,'')}\n"
-            #elif typ is str and not "_label" in key_name:
-            #    t = "String".ljust(15)
-            #    s = item.replace("\n", " ").replace("\t", " ")
-            #    print(f"{key_name}{t}{s}")
             elif typ is float or typ is int or typ is np.float64:
                 t = "Scalar".ljust(15)
                 v = item
                 out += f"{key_name}{t}{v}\n"
-    out += "-\n"
+    out += "\n"
     #
     for key in D.__dict__.keys():
         if key.startswith("__"):
@@ -127,5 +125,17 @@ def dataInfo(D = None, ret = False):
                 t = "List".ljust(15)
                 v = len(item)
                 out += f"{key_name}{t}len = {v}\n"
+    out += "\n"
+    #
+    for key in D.__dict__.keys():
+        if key.startswith("__"):
+            key_name = key.replace('__', '')
+            item = D.__dict__.get(key)
+            typ = type(item)
+            key_name = Fore.BLUE + key.replace('__', '').ljust(20) + Fore.RESET
+            if typ is type(DataObject()):
+                t = "DataObject".ljust(15)
+                out += f"{key_name}{t}(use .info to see contents)\n"
+        
     if ret: return out
     else: print(out)

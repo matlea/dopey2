@@ -1,8 +1,10 @@
-__version__ = "25.12.07"
+__version__ = "26.02.14"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.02.10    Updated the 'experiment' dict to be a DataObject.
+                    Have to update the other modules as well...
 Version 26.02.10    Minor update regarding DataObject.
 Version 25.12.07    General upgrades, mostly related to spin_arpes but also other stuff.
 Version 25.12.06    Adding rudimentary loader for spin_arpes
@@ -23,17 +25,15 @@ import matplotlib.pyplot as plt
 from copy import deepcopy
 import pickle
 
-try: from dopey_data_object import DataObject
+try: from dopey.dopey_data_object import DataObject
 except:
-    try: from dopey.dopey_data_object import DataObject
-    except:
-        print(f"{Fore.RED}dopey_loader could not import from dopey_data_object.{Fore.RESET}")
+    try: from dopey_data_object import DataObject
+    except: print(f"{Fore.RED}dopey_loader could not import from dopey_data_object.{Fore.RESET}")
 
-try: from dopey_plot import plot as dopplot
+try: from dopey.dopey_plot import plot as dopplot
 except:
     try: from dopey.dopey_plot import plot as dopplot
-    except:
-        print(f"{Fore.RED}dopey_loader could not import the plot() method from dopey_plot.{Fore.RESET}")
+    except: print(f"{Fore.RED}dopey_loader could not import the plot() method from dopey_plot.{Fore.RESET}")
 
 CCD_ANALYZERS  = ["PhoibosCCD", "AnalyzerCCD"]
 SPIN_ANALYZERS = ["PhoibosSpin"]
@@ -53,8 +53,10 @@ def loadXY(file_name = "", shup = False, keep_raw_data = False):
     if not type(shup) is bool: shup = False
     if not type(keep_raw_data) is bool: keep_raw_data = False
     #
-    retd = {}           # The dict to be returned.
-    experiment = {}     # Sub dict, add to dict retd
+    #retd = {}           # The dict to be returned.
+    #retd = DataObject()
+    #experiment = {}     # Sub dict, add to dict retd
+    experiment = DataObject()   
     parameters = []     # Array, add to dict Experiment
     #
     if not type(file_name) is str: file_name = ""
@@ -68,8 +70,12 @@ def loadXY(file_name = "", shup = False, keep_raw_data = False):
         print(Fore.RED + f"loadXY(): I could not find/open the file ({file_name})." + Fore.RESET)
         return {}
     
-    retd.update({"file_name": file_name, "spectrum_id": -1, "experiment": {},
-                "type": "unidentified", "raw_data": {}})
+    #retd.update({"file_name": file_name, "spectrum_id": -1, "experiment": {}, "type": "unidentified", "raw_data": {}})
+    #retd._addProperty('file_name', file_name)
+    #retd._addProperty('spectrum_id', -1)
+    #retd._addProperty('experiment', None)
+    #retd._addProperty('type', 'unidentified')
+    #retd._addProperty('raw_data', None)
 
     data_start_row = -1
 
@@ -82,41 +88,58 @@ def loadXY(file_name = "", shup = False, keep_raw_data = False):
 
             if ReadHeader:
                 if row.startswith('# Created by'):
-                    experiment.update({'Version': row.split(",")[1].replace(' ','').strip('Version')})
+                    #experiment.update({'Version': row.split(",")[1].replace(' ','').strip('Version')})
+                    experiment._addProperty('Version', row.split(",")[1].replace(' ','').strip('Version'))
                 if row.startswith('#   Energy Axis'):
-                    experiment.update({'Energy_Axis': row.split(":")[1].replace(' ','')})
+                    #experiment.update({'Energy_Axis': row.split(":")[1].replace(' ','')})
+                    experiment._addProperty('Energy_Axis', row.split(":")[1].replace(' ',''))
                 if row.startswith('#   Count Rate'):
-                    experiment.update({'Count_Rate': row.split(": ")[1].replace(' ','').replace('per','/')})
+                    #experiment.update({'Count_Rate': row.split(": ")[1].replace(' ','').replace('per','/')})
+                    experiment._addProperty('Count_Rate', row.split(": ")[1].replace(' ','').replace('per','/'))
                 #
                 if row.startswith('# Spectrum ID:'):
-                    experiment.update({'Spectrum_ID': row.split(":")[1].replace(' ','')})
-                    retd.update({"spectrum_id": experiment["Spectrum_ID"]})
+                    #experiment.update({'Spectrum_ID': row.split(":")[1].replace(' ','')})
+                    experiment._addProperty('Spectrum_ID', row.split(":")[1].replace(' ',''))
+                    #retd.update({"spectrum_id": experiment["Spectrum_ID"]})
+                    #retd.spectrum_id = experiment.Spectrum_ID
                 if row.startswith("# Analysis Method"):   
-                    experiment.update({'Analysis_Method': row.split(":")[1].replace(' ','')})
+                    #experiment.update({'Analysis_Method': row.split(":")[1].replace(' ','')})
+                    experiment._addProperty('Analysis_Method', row.split(":")[1].replace(' ',''))
                 if row.startswith("# Analyzer:"):   
-                    experiment.update({'Analyzer': row.split(":")[1].replace(' ','')})
+                    #experiment.update({'Analyzer': row.split(":")[1].replace(' ','')})
+                    experiment._addProperty('Analyzer', row.split(":")[1].replace(' ',''))
                 if row.startswith("# Analyzer Lens:"):   
-                    experiment.update({'Lens_Mode': row.split(":")[1].replace(' ','')})
+                    #experiment.update({'Lens_Mode': row.split(":")[1].replace(' ','')})
+                    experiment._addProperty('Lens_Mode', row.split(":")[1].replace(' ',''))
                 if row.startswith("# Scan Mode:"):                                          
-                    experiment.update({'Scan_Mode': row.split(":")[1].replace(' ','')})
+                    #experiment.update({'Scan_Mode': row.split(":")[1].replace(' ','')})
+                    experiment._addProperty('Scan_Mode', row.split(":")[1].replace(' ',''))
                 if row.startswith("# Curves/Scan:"): 
-                    experiment.update({'Curves_Per_Scan': int(row.split(":")[1])})
+                    #experiment.update({'Curves_Per_Scan': int(row.split(":")[1])})
+                    experiment._addProperty('Curves_Per_Scan', int(row.split(":")[1]))
                 if row.startswith("# Values/Curve:"): 
-                    experiment.update({'Values_Per_Curve': int(row.split(":")[1])})
+                    #experiment.update({'Values_Per_Curve': int(row.split(":")[1])})
+                    experiment._addProperty('Values_Per_Curve', int(row.split(":")[1]))
                 if row.startswith("# Dwell Time:"): 
-                    experiment.update({'Dwell_Time': float(row.split(":")[1])})
+                    #experiment.update({'Dwell_Time': float(row.split(":")[1])})
+                    experiment._addProperty('Dwell_Time', float(row.split(":")[1]))
                 if row.startswith("# Excitation Energy:"):
-                    experiment.update({'Excitation_Energy': float(row.split(":")[1].replace(' ',''))})
+                    #experiment.update({'Excitation_Energy': float(row.split(":")[1].replace(' ',''))})
+                    experiment._addProperty('Excitation_Energy', float(row.split(":")[1].replace(' ','')))
                 if row.startswith("# Kinetic Energy:"):   
-                    experiment.update({'Ek': float(row.split(":")[1])})
+                    #experiment.update({'Ek': float(row.split(":")[1])})
+                    experiment._addProperty('Ek', float(row.split(":")[1]))
                 if row.startswith("# Pass Energy"): 
-                    experiment.update({'Ep': float(row.split(":")[1])})
+                    #experiment.update({'Ep': float(row.split(":")[1])})
+                    experiment._addProperty('Ep', float(row.split(":")[1]))
                 if row.startswith("# OrdinateRange"):
                     tmp = row.split(":")[1].strip(' ').strip('[').strip(']').split(',')
-                    experiment.update({'Ordinate_Range': [float(tmp[0]), float(tmp[1])]})
+                    #experiment.update({'Ordinate_Range': [float(tmp[0]), float(tmp[1])]})
+                    experiment._addProperty('Ordinate_Range', [float(tmp[0]), float(tmp[1])])
                 if row.startswith("# Comment"):
                     comment = row.split(":")[1].lstrip(" ")
-                    experiment.update({"Comment": comment})
+                    #experiment.update({"Comment": comment})
+                    experiment._addProperty('Comment', comment)
                 #
                 if row == '# Cycle: 0':
                     data_start_row = i
@@ -131,16 +154,25 @@ def loadXY(file_name = "", shup = False, keep_raw_data = False):
                     par = row.split(":")[1].split('=')[0].replace('" ', '').replace(' "', '')
                     parameters.append(par)
                 if row.startswith("# Number of Scans:"):     ### <<<<<<<<<< ------------------ No leading # ???
-                    experiment.update({'Number_of_scans': int(row.split(':')[1])})
+                    #experiment.update({'Number_of_scans': int(row.split(':')[1])})
+                    experiment._addProperty('Number_of_scans', int(row.split(':')[1]))
             else:
                 f.close()
                 break
-        experiment.update({'parameters': parameters})
-        experiment.update({'Column_labels': column_labels})    
+        #experiment.update({'parameters': parameters})
+        experiment._addProperty('parameters', parameters)
+        #experiment.update({'Column_labels': column_labels})    
+        experiment._addProperty('Column_labels', column_labels)
     
     # fix some stuff -----
-    if experiment.get('Energy_Axis', '') == 'KineticEnergy': experiment.update({'Energy_Axis': 'Kinetic energy (eV)'})
-    if experiment.get('Count_Rate', '') == 'Counts/Second': experiment.update({'Count_Rate': 'Intensity (counts/s)'})
+    #if experiment.get('Energy_Axis', '') == 'KineticEnergy': 
+    if experiment.Energy_Axis == 'KineticEnergy': 
+        #experiment.update({'Energy_Axis': 'Kinetic energy (eV)'})
+        experiment._addProperty('Energy_Axis', 'Kinetic energy (eV)')
+    #if experiment.get('Count_Rate', '') == 'Counts/Second': 
+    if experiment.Count_Rate == 'Counts/Second': 
+        #experiment.update({'Count_Rate': 'Intensity (counts/s)'})
+        experiment._addProperty('Count_Rate', 'Intensity (counts/s)')
     
     if data_start_row == -1:
         print(Fore.RED + "load(): I could not find the start row of the data. Sorry." + Fore.RESET); return {}
@@ -203,7 +235,7 @@ def loadXY(file_name = "", shup = False, keep_raw_data = False):
     
 def load(*args, **kwargs):
     """
-    Pass file_name (str) or raw_data (dict from loadXY()) as keyword argument.
+    Pass file_name (str) or raw_data (DataObject from loadXY()) as keyword argument.
     """
 
     if len(args) == 0:
@@ -245,14 +277,15 @@ def load(*args, **kwargs):
         
     D._addProperty("file_name", file_name)
     D._addProperty("experiment", raw_data["experiment"])
-    D._addProperty("parameters", raw_data["experiment"]["parameters"])
+    D._addProperty("parameters", raw_data["experiment"].parameters)
         # ---
         
     if not only_raw:
         # --- first sort of data
         #print(f"{D.experiment['Scan_Mode'] = }") # debug
         
-        if D.experiment["Analyzer"] in CCD_ANALYZERS:
+        #if D.experiment["Analyzer"] in CCD_ANALYZERS:
+        if D.experiment.Analyzer in CCD_ANALYZERS:
             num_axes = 0
             if len(raw_data["steps"]) == 0:   # the easy case, the one without Steps
                 D._addProperty("data_type", "ccd_2d")
@@ -265,22 +298,27 @@ def load(*args, **kwargs):
                     c1, c2 = raw_data["column1"].reshape(n2, int(n/n1/n2)), raw_data["column2"].reshape(n2, int(n/n1/n2))
                     D._addProperty("data_type", "ccd_2d")
                     D._addProperty("intensity", c2)
-                    D._addProperty("intensity_label", raw_data["experiment"]["Column_labels"][1])
+                    #D._addProperty("intensity_label", raw_data["experiment"]["Column_labels"][1])
+                    D._addProperty("intensity_label", raw_data["experiment"].Column_labels[1])
                     D._addProperty("axis0", raw_data["non_energy_ordinate"])
                     D._addProperty("axis0_label", "ordinate range")
                     D._addProperty("axis1", c1[0])
-                    D._addProperty("axis1_label", D.experiment["Energy_Axis"])
+                    #D._addProperty("axis1_label", D.experiment["Energy_Axis"])
+                    D._addProperty("axis1_label", D.experiment.Energy_Axis)
                 else: 
                     c1, c2 = raw_data["column1"].reshape(n1, n2, int(n/n1/n2)), raw_data["column2"].reshape(n1, n2, int(n/n1/n2))
                     D._addProperty("data_type", "ccd_3d")
                     D._addProperty("intensity", c2)
-                    D._addProperty("intensity_label", raw_data["experiment"]["Column_labels"][1])
+                    #D._addProperty("intensity_label", raw_data["experiment"]["Column_labels"][1])
+                    D._addProperty("intensity_label", raw_data["experiment"].Column_labels[1])
                     D._addProperty(f"axis0", raw_data["parameter_values"][0].T)
-                    D._addProperty(f"axis0_label", raw_data["experiment"]["parameters"][0])
+                    #D._addProperty(f"axis0_label", raw_data["experiment"]["parameters"][0])
+                    D._addProperty(f"axis0_label", raw_data["experiment"].parameters[0])
                     D._addProperty("axis1", raw_data["non_energy_ordinate"])
                     D._addProperty("axis1_label", "ordinate range")
                     D._addProperty(f"axis2", c1[0][0])
-                    D._addProperty(f"axis2_label", D.experiment["Energy_Axis"])
+                    #D._addProperty(f"axis2_label", D.experiment["Energy_Axis"])
+                    D._addProperty(f"axis2_label", D.experiment.Energy_Axis)
                 #
                 #if len(np.shape(c1)) == 3:
                 #    #there is hopefully only one parameter, and that parameter is probably the deflector so...
@@ -296,11 +334,13 @@ def load(*args, **kwargs):
                 keep_raw_data = True
             
         
-        elif D.experiment["Analyzer"] in SPIN_ANALYZERS:
+        #elif D.experiment["Analyzer"] in SPIN_ANALYZERS:
+        elif D.experiment.Analyzer in SPIN_ANALYZERS:
             #print(f"{len(D.parameters) = }, {D.parameters[0] = }, {D.parameters[1] = }, {D.parameters[1] = }")  ### DEBUG
             #print(f"{len(D.parameters) = }, {D.parameters[0] = }, {raw_data['parameter_values'][0] = }")  ### DEBUG
             if len(raw_data["steps"]) > 0:
-                vpc = int(D.experiment.get("Values_Per_Curve", 1))
+                #vpc = int(D.experiment.get("Values_Per_Curve", 1))
+                vpc = int(D.experiment.Values_Per_Curve)
                 
                 # --- spin edc
                 if len(D.parameters) == 2 and D.parameters[0] == "NegativePolarity" and D.parameters[1] == "Step" :
@@ -318,11 +358,14 @@ def load(*args, **kwargs):
                     p1 = np.reshape(raw_data["parameter_values"][1], sn2)
                     
                     D._addProperty("intensity", np.array(raw_data["column2"]))
-                    D._addProperty("intensity_label", raw_data["experiment"]["Column_labels"][1])
+                    #D._addProperty("intensity_label", raw_data["experiment"]["Column_labels"][1])
+                    D._addProperty("intensity_label", raw_data["experiment"].Column_labels[1])
                     D._addProperty( "axis0", raw_data["column1"][0] )
-                    D._addProperty( "axis0_label", D.experiment["Energy_Axis"])
+                    #D._addProperty( "axis0_label", D.experiment["Energy_Axis"])
+                    D._addProperty( "axis0_label", D.experiment.Energy_Axis)
                     D._addProperty( "parameter0", raw_data["parameter_values"][0] )
-                    D._addProperty( "parameter0_label", raw_data["experiment"]["parameters"][0])
+                    #D._addProperty( "parameter0_label", raw_data["experiment"]["parameters"][0])
+                    D._addProperty( "parameter0_label", raw_data["experiment"].parameters[0])
                     
                     if not shup:
                         D._printDataType()
@@ -330,7 +373,8 @@ def load(*args, **kwargs):
                         
                 
                 # --- spin mdc
-                elif len(D.parameters) == 3 and D.parameters[0] == "NegativePolarity" and "Shift" in D.parameters[1] and D.parameters[2] == "Step" and D.experiment["Scan_Mode"] == "FixedEnergies" and vpc == 1:
+                #elif len(D.parameters) == 3 and D.parameters[0] == "NegativePolarity" and "Shift" in D.parameters[1] and D.parameters[2] == "Step" and D.experiment["Scan_Mode"] == "FixedEnergies" and vpc == 1:
+                elif len(D.parameters) == 3 and D.parameters[0] == "NegativePolarity" and "Shift" in D.parameters[1] and D.parameters[2] == "Step" and D.experiment.Scan_Mode == "FixedEnergies" and vpc == 1:
                     #
                     # Update this part. See how it is done for spin_mdc and do accordingly!
                     #
@@ -348,13 +392,17 @@ def load(*args, **kwargs):
                                     imap[ip2][ip1] = v
                                     axis0_2d[ip2][ip1] = raw_data["parameter_values"][0][i]
                     D._addProperty("intensity", imap)
-                    D._addProperty("intensity_label", raw_data["experiment"]["Column_labels"][1])
+                    #D._addProperty("intensity_label", raw_data["experiment"]["Column_labels"][1])
+                    D._addProperty("intensity_label", raw_data["experiment"].Column_labels[1])
                     D._addProperty( "axis0", parv1 )
-                    D._addProperty( "axis0_label", raw_data["experiment"]["parameters"][1])
+                    #D._addProperty( "axis0_label", raw_data["experiment"]["parameters"][1])
+                    D._addProperty( "axis0_label", raw_data["experiment"].parameters[1])
                     D._addProperty("parameter0", axis0_2d.T[0])
-                    D._addProperty("parameter0_label", raw_data["experiment"]["parameters"][0])
+                    #D._addProperty("parameter0_label", raw_data["experiment"]["parameters"][0])
+                    D._addProperty("parameter0_label", raw_data["experiment"].parameters[0])
                     D._addProperty("parameter1", parv1)
-                    D._addProperty("parameter1_label", raw_data["experiment"]["parameters"][1])
+                    #D._addProperty("parameter1_label", raw_data["experiment"]["parameters"][1])
+                    D._addProperty("parameter1_label", raw_data["experiment"].parameters[1])
                     #
                     # ---- flip it so that it matches the edc (with polarity a )
                     
@@ -382,13 +430,17 @@ def load(*args, **kwargs):
                         imap[i3][i1][i2] = v
                         parv0_3d[i3][i1][i2] = raw_data["parameter_values"][0][i]
                     D._addProperty("intensity", imap)
-                    D._addProperty("intensity_label", raw_data["experiment"]["Column_labels"][1])
+                    #D._addProperty("intensity_label", raw_data["experiment"]["Column_labels"][1])
+                    D._addProperty("intensity_label", raw_data["experiment"].Column_labels[1])
                     D._addProperty( "axis0", parv1 )
-                    D._addProperty( "axis0_label", raw_data["experiment"]["parameters"][1])
+                    #D._addProperty( "axis0_label", raw_data["experiment"]["parameters"][1])
+                    D._addProperty( "axis0_label", raw_data["experiment"].parameters[1])
                     D._addProperty( "axis1", parv2 )
-                    D._addProperty( "axis1_label", raw_data["experiment"]["parameters"][2])
+                    #D._addProperty( "axis1_label", raw_data["experiment"]["parameters"][2])
+                    D._addProperty( "axis1_label", raw_data["experiment"].parameters[2])
                     D._addProperty("parameter0", parv0_3d.T[0][0])
-                    D._addProperty("parameter0_label", raw_data["experiment"]["parameters"][0])
+                    #D._addProperty("parameter0_label", raw_data["experiment"]["parameters"][0])
+                    D._addProperty("parameter0_label", raw_data["experiment"].parameters[0])
                     
                     if not shup:
                         D._printDataType()
@@ -411,9 +463,11 @@ def load(*args, **kwargs):
                     imap = np.reshape(raw_data["column2"], (ns, n00))   
                     
                     D._addProperty("intensity", imap)
-                    D._addProperty("intensity_label", raw_data["experiment"]["Column_labels"][1])
+                    #D._addProperty("intensity_label", raw_data["experiment"]["Column_labels"][1])
+                    D._addProperty("intensity_label", raw_data["experiment"].Column_labels[1])
                     D._addProperty("axis0", parv4)
-                    D._addProperty("axis0_label", raw_data["experiment"]["parameters"][4])
+                    #D._addProperty("axis0_label", raw_data["experiment"]["parameters"][4])
+                    D._addProperty("axis0_label", raw_data["experiment"].parameters[4])
                     
                     D._addProperty("parameter0", parv0)
                     D._addProperty("parameter0_label", D.parameters[0])
@@ -447,22 +501,28 @@ def load(*args, **kwargs):
                         p1 = np.reshape(raw_data["parameter_values"][1], sn1)
                         
                         D._addProperty("intensity", np.array(raw_data["column2"]))
-                        D._addProperty("intensity_label", raw_data["experiment"]["Column_labels"][1])
+                        #D._addProperty("intensity_label", raw_data["experiment"]["Column_labels"][1])
+                        D._addProperty("intensity_label", raw_data["experiment"].Column_labels[1])
                         D._addProperty( "axis0", raw_data["column1"][0] )
-                        D._addProperty( "axis0_label", D.experiment["Energy_Axis"])
+                        #D._addProperty( "axis0_label", D.experiment["Energy_Axis"])
+                        D._addProperty( "axis0_label", D.experiment.Energy_Axis)
                         D._addProperty( "axis1", raw_data["parameter_values"][1]) 
-                        D._addProperty( "axis1_label", raw_data["experiment"]["parameters"][1])
+                        #D._addProperty( "axis1_label", raw_data["experiment"]["parameters"][1])
+                        D._addProperty( "axis1_label", raw_data["experiment"].parameters[1])
                         D._addProperty( "parameter0", raw_data["parameter_values"][0] )
-                        D._addProperty( "parameter0_label", raw_data["experiment"]["parameters"][0])
+                        #D._addProperty( "parameter0_label", raw_data["experiment"]["parameters"][0])
+                        D._addProperty( "parameter0_label", raw_data["experiment"].parameters[0])
                         D._addProperty( "parameter1", raw_data["parameter_values"][1] )
-                        D._addProperty( "parameter1_label", raw_data["experiment"]["parameters"][1])
+                        #D._addProperty( "parameter1_label", raw_data["experiment"]["parameters"][1])
+                        D._addProperty( "parameter1_label", raw_data["experiment"].parameters[1])
                         
                         if not shup:
                             D._printDataType()
                             D._printAxesAndParameters()
                         
                 # spin_arpes
-                elif len(D.parameters) == 3 and D.parameters[0] == "NegativePolarity" and "Shift" in D.parameters[1] and D.parameters[2] == "Step" and D.experiment["Scan_Mode"] == "FixedAnalyzerTransmission":
+                #elif len(D.parameters) == 3 and D.parameters[0] == "NegativePolarity" and "Shift" in D.parameters[1] and D.parameters[2] == "Step" and D.experiment["Scan_Mode"] == "FixedAnalyzerTransmission":
+                elif len(D.parameters) == 3 and D.parameters[0] == "NegativePolarity" and "Shift" in D.parameters[1] and D.parameters[2] == "Step" and D.experiment.Scan_Mode == "FixedAnalyzerTransmission":
                     D._addProperty("data_type", "spin_arpes")
                     #
                     num_points = len(raw_data["column2"])           # number of points in a column
@@ -488,9 +548,11 @@ def load(*args, **kwargs):
                     D._addProperty("intensity", np.array([data1, data2]))
                     D._addProperty("intensity_label", "summed up counts")
                     D._addProperty( "axis0", energy_axis)
-                    D._addProperty( "axis0_label", D.experiment["Energy_Axis"])
+                    #D._addProperty( "axis0_label", D.experiment["Energy_Axis"])
+                    D._addProperty( "axis0_label", D.experiment.Energy_Axis)
                     D._addProperty( "axis1", unique_deflectors) 
-                    D._addProperty( "axis1_label", raw_data["experiment"]["parameters"][1])
+                    #D._addProperty( "axis1_label", raw_data["experiment"]["parameters"][1])
+                    D._addProperty( "axis1_label", raw_data["experiment"].parameters[1])
                     D._addProperty("parameter0", np.array([-1,1]))
                     D._addProperty("parameter0_label", "NegativePolarity")
                     
@@ -522,8 +584,8 @@ def load(*args, **kwargs):
         
     # extras -------
     #if len(D.parameters) > 0: D.parameters = D.parameters[:-1]
-    for key in ["Spectrum_ID", "Analysis_Method", "Analyzer", "Lens_Mode", "Scan_Mode", "Ek", "Ep", "Comment"]:
-        D._addProperty(key, raw_data["experiment"].get(key, None))
+    #for key in ["Spectrum_ID", "Analysis_Method", "Analyzer", "Lens_Mode", "Scan_Mode", "Ek", "Ep", "Comment"]:
+    #    D._addProperty(key, raw_data["experiment"].get(key, None))
     
     
     # ---------------------------------------------

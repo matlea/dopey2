@@ -1,8 +1,9 @@
-__version__ = "26.02.11"
+__version__ = "26.02.14"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.02.14    All 'help' keyword arguments are now 'hlp'.
 Version 26.02.10    Updated slice3D() to take more advantage of DataObject(). Also updated _plot_data_from3d() to follow.
 Version 26.02.10    Updated slice3D() to return a dopey data object instead of a dict. The data type is "from3D".
                     Also added _plot_data_from3d() to plot() to easily plot this data type.
@@ -53,15 +54,23 @@ except: print(f"{Fore.RED}{__name__} could not import the ipywidget module and/o
 
 def plot(D = object, ax = None, **kwargs):
     """
+    Gateway method to a range of plot methods. Method depends on data type.
+    
+    Arguments are D (dopey DataObject, non-optional) and ax (matplotlib.axes._axes.Axes, optional).
+    There are a number of keyword arguments that depends on data type.
+    Pass keyword argument hlp as True for more info.
     """
     #
     try:
-        if kwargs.get("help", False):
+        if kwargs.get("hlp", False):
             print(f"{Fore.BLUE}Arguments:")
             print("D           Data object")
             print("ax          matplotlib.axes._axes.Axes")
             print(Fore.RESET)
     except: pass
+    #
+    if not type(D) is type(DataObject()):
+        print(f"{Fore.RED}The D argument must be a dopey DataObject.{Fore.RESET}"); return ax
     #
     if D.data_type == "1d": return _plot_data_1d(D = D, ax = ax, **kwargs)
     if D.data_type == "ccd_2d": return _plot_data_ccd2d(D = D, ax = ax, **kwargs)
@@ -81,7 +90,7 @@ def _plot_data_1d(D = object, ax = None, **kwargs):
     """
     """
     try:
-        if kwargs.get("help", False):
+        if kwargs.get("hlp", False):
             print(f"{Fore.BLUE}Keyword arguments:")
             print("figsize     tuple")
             print(Fore.RESET)
@@ -107,7 +116,7 @@ def _plot_data_ccd2d(D = object, ax = None, cmap = "bone_r", shup = False, **kwa
     """
     #
     try:
-        if kwargs.get("help", False):
+        if kwargs.get("hlp", False):
             print(f"{Fore.BLUE}Keyword arguments:")
             print("figsize     tuple")
             print("transpose   bool")
@@ -148,7 +157,7 @@ def _plot_data_spin_edc(D = object, ax = None, **kwargs):
     """
     #
     try:
-        if kwargs.get("help", False):
+        if kwargs.get("hlp", False):
             print(f"{Fore.BLUE}Keyword arguments:")
             print("figsize     tuple")
             print("exclude     list")
@@ -240,7 +249,7 @@ def _plot_data_spin_arpes(D = None, ax = None, **kwargs):
     """
     """
     try:
-        if kwargs.get("help", False):
+        if kwargs.get("hlp", False):
             print(f"{Fore.BLUE}Keyword arguments:")
             print("intensity   bool        plot raw intensities for ON and OFF.")
             print("asymmetry   bool        plot the asymmetry (applicable for data from asymmetry()).")
@@ -360,7 +369,7 @@ def _plot_data_spin_map(D = None, ax = None, **kwargs):
     """
     #
     try:
-        if kwargs.get("help", False):
+        if kwargs.get("hlp", False):
             print(f"{Fore.BLUE}Keyword arguments:")
             print("polarity       integer       default 0, pass -1 or 1 for only positive or only negative NegativePolarity")
             print("asymmetry      bool          applicable for data from asymmetry()")
@@ -494,7 +503,7 @@ def _plot_data_spin_polarization(D = object, ax = None, **kwargs):
     """
     #
     try:
-        if kwargs.get("help", False):
+        if kwargs.get("hlp", False):
             print(f"{Fore.BLUE}Keyword arguments:")
             print("None, at the moment.")
             print(f"{Fore.RESET}")
@@ -723,7 +732,7 @@ def _plot_data_ccd3d(D = object, ax = None, **kwargs):
     """
     """
     try:
-        if kwargs.get("help", False):
+        if kwargs.get("hlp", False):
             print(f"{Fore.BLUE}Arguments:")
             print("D           Data object")
             print("ax          matplotlib.axes._axes.Axes")
@@ -835,7 +844,7 @@ def _plot_data_from3d(D = object, ax = None, cmap = "bone_r", shup = False, **kw
     """
     #
     try:
-        if kwargs.get("help", False):
+        if kwargs.get("hlp", False):
             print(f"{Fore.BLUE}Keyword arguments:")
             print("output       integer     0 (cut), 1 (profile 1), or 2 (profile 2)")
             print("figsize      tuple")
@@ -897,6 +906,9 @@ def _plot_data_from3d(D = object, ax = None, cmap = "bone_r", shup = False, **kw
     
 
 
+
+def slice3d(D = object, axis = None, shup = False):
+    return slice3D(D = D, axis = axis, shup = shup)
 
 def slice3D(D = object, axis = None, shup = False):
     """

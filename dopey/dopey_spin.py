@@ -1,8 +1,9 @@
-__version__ = "26.02.10"
+__version__ = "26.02.14"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.02.14    All 'help' keyword arguments are now 'hlp'.
 Version 26.02.10    Minor update regarding DataObject.
 Version 26.01.28    Bugfix in asymmetry() and polarization().
 Version 25.12.08    Bugfix in polarization(). Had forgotten to add 'spin_arpes' as data type.
@@ -67,7 +68,7 @@ def asymmetry(D = object, **kwargs):
     Accepts keyword arguments exclude (list), normp and normpn (integers)
     """
     try:
-        if kwargs.get("help", False):
+        if kwargs.get("hlp", False):
             print(f"{Fore.BLUE}Keyword arguments:")
             print( "exclude     list       list of integers (curve numbers)")
             print( "normp       integer    normalize for intensity between points normp and normpn")
@@ -169,7 +170,7 @@ def polarization(**kwargs):
     """
     global SHERMAN
     try:
-        if kwargs.get("help", False):
+        if kwargs.get("hlp", False):
             print(f"{Fore.BLUE}Arguments needed:")
             print("  correct calculation of Px and Py                   c2rp and c2rm")
             print("  correct calculation of Px, Py, and Pz              c1rp, c1rm, c2rp, and c2rm")
@@ -564,7 +565,7 @@ def despikeSpin(D = object, **kwargs):
     """
     """
     try:
-        if kwargs.get("help", False):
+        if kwargs.get("hlp", False):
             print(f"{Fore.BLUE}Arguments needed:")
             print("  D             spin data object from .load()")
             print("Keyword arguments:")
@@ -718,7 +719,7 @@ def despikeSpinManual(D = object, **kwargs):
     """
     print(f"{Fore.MAGENTA}Note: There's occationally an issue with the plot being duplicated. Try to ignore it for now.{Fore.RESET}")
     try:
-        if kwargs.get("help", False):
+        if kwargs.get("hlp", False):
             print(f"{Fore.BLUE}Arguments needed:")
             print("  D             spin data object from .load()")
             print("Keyword arguments:")

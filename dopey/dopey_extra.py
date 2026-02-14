@@ -1,15 +1,15 @@
-__version__ = "25.11.10"
+__version__ = "26.02.14"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.02.14    All 'help' keyword arguments are now 'hlp'.
 Version 25.11.10    Export to text.
 """
 
 
 import numpy as np
 from colorama import Fore
-
 
 
 
@@ -26,7 +26,7 @@ def export2txt(D = object, file_name = "data", **kwargs):
     #
     accepted_data_types = ["spin_edc", "spin_mdc"]
     #
-    hlp = kwargs.get("help", False)
+    hlp = kwargs.get("hlp", False)
     if not type(hlp) is bool: hlp = False
     if hlp:
         print(f"{Fore.BLUE}Arguments:")

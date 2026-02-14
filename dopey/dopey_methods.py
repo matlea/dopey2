@@ -1,8 +1,9 @@
-__version__ = "26.02.03"
+__version__ = "26.02.14"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.02.14    All 'help' keyword arguments are now 'hlp'.
 Version 26.02.03    Updated compact(). Now handles ccd_2d and ccd3d.
 Version 25.11.25    A very, very minor change. Barely worth mentioning.
 Version 25.10.20    Added method align(fermi map).
@@ -31,7 +32,7 @@ except:
 def subArray(D = object, axis = -1, **kwargs):
     """
     """
-    shup = kwargs.get("shup", True)
+    shup = kwargs.get("shup", False)
     if not type(shup) is bool: shup = False
     #
     DD = deepcopy(D)
@@ -39,11 +40,19 @@ def subArray(D = object, axis = -1, **kwargs):
     except:
         print(f"{Fore.RED}The argument D must be Data object.{Fore.RESET}"); return DD
     #
+    int_dim = len(np.shape(DD.intensity))
+    #
+    if not shup:
+        print(f"This data set is of dimension {int_dim} with shape {np.shape(DD.intensity)}.")
+        print("The axes are:")
+        if int_dim > 0: print(f"axis0    size = {len(DD.axis0)}    ({DD.axis0_label})")
+        if int_dim > 1: print(f"axis1    size = {len(DD.axis1)}    ({DD.axis1_label})")
+        if int_dim > 2: print(f"axis2    size = {len(DD.axis2)}    ({DD.axis2_label})")
+    #
     try: axis = int(axis)
     except:
         print(f"{Fore.RED}The argument axis must be an integer (axis number).{Fore.RESET}"); return DD
-    #
-    int_dim = len(np.shape(DD.intensity))
+    
     #
     # ---------------------------------------- ccd 2d or 3d
     if "ccd" in typ: 
@@ -90,12 +99,11 @@ def subArray(D = object, axis = -1, **kwargs):
             axis_range = axis_range[ii1:ii2]
             DD.axis2 = axis_range
         #
-        if not shup:
-            if axis == 0: axis_str = DD.axis0_label
-            elif axis == 1: axis_str = DD.axis1_label
-            elif axis == 2: axis_str = DD.axis2_label
-            print(f"{Fore.BLUE}Returning data for axis {axis} ({axis_str}) between {axis_range.min()} and {axis_range.max()}.{Fore.RESET}")
-            
+        #if not shup:
+        #    if axis == 0: axis_str = DD.axis0_label
+        #    elif axis == 1: axis_str = DD.axis1_label
+        #    elif axis == 2: axis_str = DD.axis2_label
+        #    print(f"{Fore.BLUE}Returning data for axis {axis} ({axis_str}) between {axis_range.min()} and {axis_range.max()}.{Fore.RESET}")   
         #
         return DD
     #
@@ -120,12 +128,19 @@ def compact(D = object, **kwargs):
     except:
         print(f"{Fore.RED}The argument D must be Data object.{Fore.RESET}"); return DD
     #
+    int_dim = len(np.shape(DD.intensity))
+    #
+    if not shup:
+        print(f"This data set is of dimension {int_dim} with shape {np.shape(DD.intensity)}.")
+        print("The axes are:")
+        if int_dim > 0: print(f"axis0    size = {len(DD.axis0)}    ({DD.axis0_label})")
+        if int_dim > 1: print(f"axis1    size = {len(DD.axis1)}    ({DD.axis1_label})")
+        if int_dim > 2: print(f"axis2    size = {len(DD.axis2)}    ({DD.axis2_label})")
+    #
     axis = kwargs.get("axis", None)
     try: axis = abs(int(axis))
     except:
         print(f"{Fore.RED}The argument axis must be an integer (axis number).{Fore.RESET}"); return DD
-    #
-    int_dim = len(np.shape(DD.intensity))
     #
     if "ccd" in typ or "fermi_cut" in typ:
         if axis >= int_dim:
@@ -179,7 +194,7 @@ def fermiMapCut(D = object, **kwargs):
     """
     #
     try:
-        if kwargs.get("help", False):
+        if kwargs.get("hlp", False):
             print(f"{Fore.BLUE}Arguments:")
             print("D        Data object\n")
             print("Keyword arguments:")
@@ -274,7 +289,7 @@ def align(D = object, **kwargs):
     """
     #
     try:
-        if kwargs.get("help", False):
+        if kwargs.get("hlp", False):
             print(f"{Fore.BLUE}Arguments:")
             print("D           Data object")
             print(Fore.RESET)
