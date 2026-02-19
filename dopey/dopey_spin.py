@@ -1,8 +1,9 @@
-__version__ = "26.02.14"
+__version__ = "26.02.19"
 __author__  = "Mats Leandersson"
 
 
 """
+version 26.02.19    .asymmetry() had to be renamed calcAsymmetry() since there is an array called asymmetry.
 Version 26.02.14    All 'help' keyword arguments are now 'hlp'.
 Version 26.02.10    Minor update regarding DataObject.
 Version 26.01.28    Bugfix in asymmetry() and polarization().
@@ -61,7 +62,7 @@ TA = np.deg2rad(15)
 # =================================================================    
 
 
-def asymmetry(D = object, **kwargs):
+def calcAsymmetry(D = object, **kwargs):
     """
     This method takes a data object containing spin data (EDC, MDC, ARPES, or Map) and calculates the
     asymmeetry and distributed intensity ('component intensity'). Returns a data object.

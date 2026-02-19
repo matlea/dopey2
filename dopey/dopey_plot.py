@@ -28,11 +28,10 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from copy import deepcopy
 
-try: from dopey_data_object import *
+try: from dopey_data_object import DataObject
 except:
-    try: from dopey.dopey_data_object import *
-    except:
-        print(f"{Fore.RED}dopey_plot could not import from dopey_data_object.{Fore.RESET}")
+    try: from dopey.dopey_data_object import DataObject
+    except: print(f"{Fore.RED}dopey_plot could not import from dopey_data_object.{Fore.RESET}")
 
 try: from dopey_methods import fermiMapCut, subArray, compact
 except: 
@@ -170,16 +169,24 @@ def _plot_data_spin_edc(D = object, ax = None, **kwargs):
     except: pass          
     #
     what_to_plot = "intensity"
+    if "asymmetry" in D._listAttributes(): what_to_plot = "asymmetry"   # Something is wrong between here....
     #
     asymmetry = kwargs.get("asymmetry", False)
     mean = kwargs.get("mean", False)
     component = kwargs.get("component", False)
+    edc = kwargs.get("edc", False)
+    
     if asymmetry and "asymmetry" in D._listAttributes():
         what_to_plot = "asymmetry"
     elif component and "component_plus" in D._listAttributes():
         what_to_plot = "component"
     elif mean and "intensity_off" in D._listAttributes():
         what_to_plot = "mean"
+    elif edc:
+        what_to_plot = "intensity"
+    else:
+        if "asymmetry" in D._listAttributes(): what_to_plot = "asymmetry"
+        else: what_to_plot = "intensity"                                    # ...and here.
     #
     figsize = kwargs.get("figsize", (6,4))
     if not type(figsize) is tuple: figsize = (6,4)
