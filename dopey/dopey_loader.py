@@ -1,8 +1,9 @@
-__version__ = "26.02.14"
+__version__ = "26.02.20"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.02.20    Removed the option to pass a dict from loadXY() into load(). Now load() only accept file names.
 Version 26.02.10    Updated the 'experiment' dict to be a DataObject.
                     Have to update the other modules as well...
 Version 26.02.10    Minor update regarding DataObject.
@@ -30,11 +31,6 @@ except:
     try: from dopey_data_object import DataObject
     except: print(f"{Fore.RED}dopey_loader could not import from dopey_data_object.{Fore.RESET}")
 
-try: from dopey.dopey_plot import plot as dopplot
-except:
-    try: from dopey.dopey_plot import plot as dopplot
-    except: print(f"{Fore.RED}dopey_loader could not import the plot() method from dopey_plot.{Fore.RESET}")
-
 CCD_ANALYZERS  = ["PhoibosCCD", "AnalyzerCCD"]
 SPIN_ANALYZERS = ["PhoibosSpin"]
 
@@ -57,7 +53,7 @@ def loadXY(file_name = "", shup = False, keep_raw_data = False):
     #retd = DataObject()
     #experiment = {}     # Sub dict, add to dict retd
     experiment = DataObject()   
-    parameters = []     # Array, add to dict Experiment
+    parameters = []     # Array, add to experiment
     #
     if not type(file_name) is str: file_name = ""
     if file_name == '':
@@ -233,45 +229,38 @@ def loadXY(file_name = "", shup = False, keep_raw_data = False):
                 "steps": steps, "non_energy_ordinate": non_energy_ordinate, "column1": column1, "column2": column2}
     
     
-def load(*args, **kwargs):
+def load(file_name = "", **kwargs):
     """
     Pass file_name (str) or raw_data (DataObject from loadXY()) as keyword argument.
     """
+    try:
+        if kwargs.get("hlp", False):
+            print(f"{Fore.BLUE}Arguments:")
+            print( "file_name       string      the name of a .xy data file from Prodigy.")
+            print(f"Keyword arguments:")
+            print( "shup            bool        avoid chatter, except errors and warnings.")
+            print( "only_raw        bool        don't sort the data, just deliver it in raw form.")
+            print( "keep_raw_data   bool        keep the raw data.")
+            print(Fore.RESET)
+    except: pass
+    
+    D = DataObject()
 
-    if len(args) == 0:
-        print(Fore.MAGENTA + "Data(): Pass a file name (xy-file) or a dict from loadXY()." + Fore.MAGENTA); return
-    #
-    raw_data, file_name, shup = None, None, None
-    for a in args:
-        if type(a) is dict: raw_data = deepcopy(a)
-        if type(a) is str: file_name = a
+    if not type(file_name) is str:
+        print(f"{Fore.RED}The argument file_name must be a string, preferably the path to and the name of a .xy file.{Fore.RESET}")
+        return DataObject()
+    
     shup = kwargs.get("shup", False)
     keep_raw_data = kwargs.get("keep_raw_data", False)
+    only_raw = kwargs.get("only_raw", False)
     if not type(shup) is bool: shup = False
     if not type(keep_raw_data) is bool: keep_raw_data = False
-    #
-    only_raw = kwargs.get("only_raw", False)
     if not type(only_raw) is bool: only_raw = False   
     #
-    if type(shup) is type(None): shup = False
-    #
-    if type(raw_data) is dict:
-        # keys I expect to find in the raw_data dict from method loadXY()
-        expected_keys = ["experiment", "parameter_values", "cycles", "curves", "steps", "non_energy_ordinate", "column1", "column2"]
-        keys_in_dict = list(raw_data.keys())
-        missing_keys = []
-        for key in expected_keys:
-            if not key in keys_in_dict: missing_keys.append(key)
-        if len(missing_keys) > 0:
-            print(Fore.RED + f"Data(): I could not find all the necessary keys in the passed dict.")
-            print(f"        I'm missing {missing_keys}" + Fore.RESET); return
-    elif type(file_name) is str:
-        raw_data = loadXY(file_name)
-        if len(raw_data) == 0: return
-    else:
-        return
-    
-    D = DataObject()      # --------------          
+    raw_data = loadXY(file_name = file_name, shup = shup, keep_raw_data = keep_raw_data)
+    if len(raw_data) == 0:
+        print(f"{Fore.RED}I could not find any data to load, alternatively I failed attempting to load the data.{Fore.RESET}")
+        return DataObject()      
                 
     # --- save what we got so far
         
@@ -282,7 +271,6 @@ def load(*args, **kwargs):
         
     if not only_raw:
         # --- first sort of data
-        #print(f"{D.experiment['Scan_Mode'] = }") # debug
         
         #if D.experiment["Analyzer"] in CCD_ANALYZERS:
         if D.experiment.Analyzer in CCD_ANALYZERS:
