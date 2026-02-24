@@ -1,7 +1,10 @@
 __author__ = "Mats Leandersson"
-__version__ = "2026.02.18"
+__version__ = "2026.02.24"
 
-from colorama import Fore
+from colorama import Fore, Style
+import sys
+import types
+
 
 __all__ = ["dopey_data_object", "dopey_constants", "dopey_loader", "dopey_spin", "dopey_plot", "dopey_methods", "dopey_extra"]
 
@@ -43,4 +46,26 @@ except: print(f"{Fore.RED}dopey_extra, not loaded{Fore.RESET}")
 
 
 
- 
+def dopeyContent():
+    try: dopey_dict = sys.modules["dopey"].__dict__
+    except: return
+    modules = []
+    for item in dopey_dict.items():
+        if isinstance(item[1], types.ModuleType):
+            if "dopey" in item[0]: modules.append(item[0])
+    if len(modules) == 0: return
+    #
+    for M in modules:
+        print(f"{Style.BRIGHT}Module: {M}{Style.NORMAL}")
+        m_dict = sys.modules[f"dopey.{M}"].__dict__
+        for item in m_dict.items():
+            if item[0] == "DataObject": typ = "DataObject"
+            elif isinstance(item[1], types.FunctionType): typ = "method"
+            elif type(item[1]) is float: typ = "number"
+            else: typ = ""
+            if not typ == "" and item[0].startswith("_"): typ = f"{typ} (not a user method)"
+            if not typ == "": print(f"{item[0]:<30}{typ}")
+        print()
+
+        
+    
