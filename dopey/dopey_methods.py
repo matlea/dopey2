@@ -1,8 +1,9 @@
-__version__ = "26.02.14"
+__version__ = "26.02.25"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.02.25    Unimportant update reladed to the hlp keyword arguments. 
 Version 26.02.14    All 'help' keyword arguments are now 'hlp'.
 Version 26.02.03    Updated compact(). Now handles ccd_2d and ccd3d.
 Version 25.11.25    A very, very minor change. Barely worth mentioning.
@@ -31,7 +32,21 @@ except:
 
 def subArray(D = object, axis = -1, **kwargs):
     """
+    Returns a sub section of the data in a dopey data object.
+    
+    Arguments:
+        D           dopey data object
+        axis        integer             what axis to cut (can e.g. be 0 or 1 for 2d data,...)
+    Keyword arguments:
+        i1,i2       integers            start and stop indices for axis
+        a1,a2       numbers             start and stop values for axis
+    
+    Use either i1 and i2, or a1 and a2.
     """
+    try:
+        if kwargs.get("hlp", False): help(subArray)
+    except: pass
+    #
     shup = kwargs.get("shup", False)
     if not type(shup) is bool: shup = False
     #
@@ -120,6 +135,17 @@ def subArray(D = object, axis = -1, **kwargs):
 
 
 def compact(D = object, **kwargs):
+    """
+    Returns a data object with one axis compacted (summed). Use in conjunction with subArray().
+    
+    Arguments:
+        D           dopey data object
+    Keyword arguments:
+        axis        integer             what axis to compact (can e.g. be 0 or 1 for 2d data,...)
+    """
+    try:
+        if kwargs.get("hlp", False): help(compact)
+    except: pass
     shup = kwargs.get("shup", False)
     if not type(shup) is bool: shup = False
     #

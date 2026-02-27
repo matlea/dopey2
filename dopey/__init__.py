@@ -1,5 +1,5 @@
 __author__ = "Mats Leandersson"
-__version__ = "2026.02.24"
+__version__ = "2026.02.25"
 
 from colorama import Fore, Style
 import sys
@@ -8,10 +8,11 @@ import types
 
 __all__ = ["dopey_data_object", "dopey_constants", "dopey_loader", "dopey_spin", "dopey_plot", "dopey_methods", "dopey_extra"]
 
+print(f"{Style.BRIGHT}Loading dopey...{Style.NORMAL}")
 try: 
     from dopey.dopey_data_object import *
     print(f"{Fore.GREEN}dopey_data_object, version {dopey_data_object.__version__}{Fore.RESET}")
-except: print(f"{Fore.RED}dopey_data_object, not loaded{Fore.RESET}")
+except: print(f"{Fore.RED}dopey_data_object, not loaded. {Style.BRIGHT}Fatal.{Style.NORMAL}{Fore.RESET}")
 
 try: 
     from dopey.dopey_constants import *

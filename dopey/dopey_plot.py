@@ -3,6 +3,7 @@ __author__  = "Mats Leandersson"
 
 
 """
+Version 26.02.26    Small bugfix in _plot_data_ccd3d(): the compact() method was missing shup = False.
 Version 26.02.14    All 'help' keyword arguments are now 'hlp'.
 Version 26.02.10    Updated slice3D() to take more advantage of DataObject(). Also updated _plot_data_from3d() to follow.
 Version 26.02.10    Updated slice3D() to return a dopey data object instead of a dict. The data type is "from3D".
@@ -804,14 +805,14 @@ def _plot_data_ccd3d(D = object, ax = None, **kwargs):
         #
         edc = subArray(D, axis = 0, a1 = X-DX/2, a2 = X+DX/2, shup = True )
         edc = subArray(edc, axis = 1, a1 = Y-DY/2, a2 = Y+DY/2, shup = True )
-        edc = compact(edc, axis = 0)
-        edc = compact(edc, axis = 0)
+        edc = compact(edc, axis = 0, shup = True)
+        edc = compact(edc, axis = 0, shup = True)
         ax[3].plot(edc.intensity, edc.axis0, color = "k", linewidth = 0.75)
         mdc = subArray(D, axis = 2, a1 = E-DE/2, a2 = E+DE/2, shup = True )
         mdcY = subArray(mdc, axis = 0, a1 = X-DX/2, a2 = X+DX/2, shup = True )
-        mdcY = compact(mdcY, axis = 0)
+        mdcY = compact(mdcY, axis = 0, shup = True)
         mdcX = subArray(mdc, axis = 1, a1 = Y-DY/2, a2 = Y+DY/2, shup = True )
-        mdcX = compact(mdcX, axis = 1)
+        mdcX = compact(mdcX, axis = 1, shup = True)
         ax[4].plot(mdcY.axis0, mdcY.intensity, color = "k", linewidth = 0.75)
         ax[5].plot(mdcX.axis0, mdcX.intensity, color = "k", linewidth = 0.75)
         #

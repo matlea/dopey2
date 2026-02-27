@@ -1,8 +1,9 @@
-__version__ = "26.02.20"
+__version__ = "26.02.25"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.02.25    Unimportant update reladed to the hlp keyword arguments.    
 Version 26.02.20    Removed the option to pass a dict from loadXY() into load(). Now load() only accept file names.
 Version 26.02.10    Updated the 'experiment' dict to be a DataObject.
                     Have to update the other modules as well...
@@ -42,9 +43,14 @@ SPIN_ANALYZERS = ["PhoibosSpin"]
 # ==================================================================================================
 # ==================================================================================================
 
-def loadXY(file_name = "", shup = False, keep_raw_data = False):
+def loadXY(file_name = "", shup = False, keep_raw_data = False, **kwargs):
     """
+    This is a help function used by load(). To load data from Prodigy .xy files, use load().
     """
+    try:
+        if kwargs.get("hlp", False): help(loadXY)
+    except: pass
+    #
     if not type(file_name) is str: file_name = ""
     if not type(shup) is bool: shup = False
     if not type(keep_raw_data) is bool: keep_raw_data = False
@@ -57,13 +63,13 @@ def loadXY(file_name = "", shup = False, keep_raw_data = False):
     #
     if not type(file_name) is str: file_name = ""
     if file_name == '':
-        print(Fore.RED + "loadXY(): The argument 'file_name' must be a string." + Fore.RESET); return {}
+        print(Fore.RED + "load(): The argument 'file_name' must be a string." + Fore.RESET); return {}
     if not file_name.split(".")[-1].lower() == "xy":
-        print(Fore.RED + "loadXY(): The loader only accepts .xy files (the file HAS to have extention .xy)." + Fore.RESET); return {}
+        print(Fore.RED + "load(): The loader only accepts .xy files (the file HAS to have extention .xy)." + Fore.RESET); return {}
     try:
         f = open(file_name, 'r'); f.close()
     except:
-        print(Fore.RED + f"loadXY(): I could not find/open the file ({file_name})." + Fore.RESET)
+        print(Fore.RED + f"load(): I could not find/open the file ({file_name})." + Fore.RESET)
         return {}
     
     #retd.update({"file_name": file_name, "spectrum_id": -1, "experiment": {}, "type": "unidentified", "raw_data": {}})
@@ -231,17 +237,17 @@ def loadXY(file_name = "", shup = False, keep_raw_data = False):
     
 def load(file_name = "", **kwargs):
     """
-    Pass file_name (str) or raw_data (DataObject from loadXY()) as keyword argument.
+    Loads data from .xy files and sorts it according to type of measurement.
+    
+    Arguments:
+        file_name       string
+    Keyword arguments:
+        shup            bool        mute chatter, except for errors and warnings.
+        only_raw        bool        data is not sorted, just delivered as loaded.
+        keep_raw_data   bool        keeping the unsorted data together with the sorted.
     """
     try:
-        if kwargs.get("hlp", False):
-            print(f"{Fore.BLUE}Arguments:")
-            print( "file_name       string      the name of a .xy data file from Prodigy.")
-            print(f"Keyword arguments:")
-            print( "shup            bool        avoid chatter, except errors and warnings.")
-            print( "only_raw        bool        don't sort the data, just deliver it in raw form.")
-            print( "keep_raw_data   bool        keep the raw data.")
-            print(Fore.RESET)
+        if kwargs.get("hlp", False): help(load)
     except: pass
     
     D = DataObject()
@@ -613,9 +619,18 @@ def load(file_name = "", **kwargs):
 # ---------------------------------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------------------------------
 
-def pickleSave(D = object, file_name = "file.pickle"):
+def pickleSave(D = object, file_name = "file.pickle", **kwargs):
     """
+    Save whatever object, data, etc. using pickle.
+    
+    Arguments:
+        D           object
+        file_name   string
     """
+    try:
+        if kwargs.get("hlp", False): help(pickleSave)
+    except: pass
+    #
     try: typ = D.data_type
     except:
         print(f"{Fore.MAGENTA}The argument D is not a data object. I'll save it anyway, tho...{Fore.RESET}")
@@ -633,9 +648,16 @@ def pickleSave(D = object, file_name = "file.pickle"):
     except:
         print(f"{Fore.RED}Could not save the data to {file_name}{Fore.RESET}")
 
-def pickleLoad(file_name = "file.pickle"):
+def pickleLoad(file_name = "file.pickle", **kwargs):
     """
+    Load object, data, etc. saved by pickleSave().
+    
+    Arguments:
+        file_name   string
     """
+    try:
+        if kwargs.get("hlp", False): help(pickleSave)
+    except: pass
     try: file_name = str(file_name)
     except:
         print(f"{Fore.MAGENTA}The argument file_name must be a string. Setting it to 'file.pickle'.{Fore.RESET}")

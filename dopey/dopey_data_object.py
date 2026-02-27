@@ -1,11 +1,12 @@
-__version__ = "26.02.19"
+__version__ = "26.02.25"
 __author__  = "Mats Leandersson"
 
 """
-version 26.02.19    .asymmetry() in dopey_spin.py had to be renamed calcAsymmetry() since there is an array called asymmetry.
-version 26.02.18    Added access to dopey methods directly from the DataObject, e.g. do.plot() or do.asymmetry().
-version 26.02.14    Added hlp keyword argument (for consistency)
-version 26.02.10    Moving the _DataObject out of dopey_loader.py due to various reasons.
+Version 26.02.25    Unimportant update reladed to the hlp keyword arguments. 
+Version 26.02.19    .asymmetry() in dopey_spin.py had to be renamed calcAsymmetry() since there is an array called asymmetry.
+Version 26.02.18    Added access to dopey methods directly from the DataObject, e.g. do.plot() or do.asymmetry().
+Version 26.02.14    Added hlp keyword argument (for consistency)
+Version 26.02.10    Moving the _DataObject out of dopey_loader.py due to various reasons.
                     Renaming it DataObject.
 """
 
@@ -34,7 +35,7 @@ class DataObject():
     e.g. created by load(), asymmetry(), etc.
     The data and metadata is accessible as attributes, e.g. .intensity, .axis0, etc.
     Also holds a couple of methods, e.g. .plot(), .slice3D(), subArray(), compact(), align(), 
-        fermiMapCut(), asymmetry(),...
+        fermiMapCut(), asymmetry(),... if they are accessible from their corresponing py files.
     
     """
     def _addProperty(self, name: str, value):
@@ -168,7 +169,15 @@ class DataObject():
 
 
 
-def dataInfo(D = None, ret = False):
+def dataInfo(D = None, ret = False, **kwargs):
+    """
+    Lists the contents of a dopey data object. This method is also directly accessible as a
+    method in the data object, e.g. D.dataInfo().
+    """
+    try:
+        if kwargs.get("hlp", False): help(dataInfo)
+    except: pass
+    #
     try: _ = D.dopey
     except:
         print(f"{Fore.RED}info(): the argument must be a Data object."); return

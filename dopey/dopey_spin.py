@@ -1,8 +1,10 @@
-__version__ = "26.02.19"
+__version__ = "26.02.25"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.02.27    Unimportant update reladed to the hlp keyword arguments. Not ready yet.
+Version 26.02.25    Unimportant update reladed to the hlp keyword arguments. Not ready yet.
 version 26.02.19    .asymmetry() had to be renamed calcAsymmetry() since there is an array called asymmetry.
 Version 26.02.14    All 'help' keyword arguments are now 'hlp'.
 Version 26.02.10    Minor update regarding DataObject.
@@ -67,14 +69,16 @@ def calcAsymmetry(D = object, **kwargs):
     This method takes a data object containing spin data (EDC, MDC, ARPES, or Map) and calculates the
     asymmeetry and distributed intensity ('component intensity'). Returns a data object.
     Accepts keyword arguments exclude (list), normp and normpn (integers)
+    
+    Arguments:
+        D           dopey data object
+    Keyword argumenys:
+        exclude     list                a list of integers, each integer represents a curve to ignore
+        normp       integer             index of point to normalize at
+        normpn      integer             number of points to take into account in the normalization [normp,normp+normpn]
     """
     try:
-        if kwargs.get("hlp", False):
-            print(f"{Fore.BLUE}Keyword arguments:")
-            print( "exclude     list       list of integers (curve numbers)")
-            print( "normp       integer    normalize for intensity between points normp and normpn")
-            print( "normpn      integer    -''-")
-            print(Fore.RESET)
+        if kwargs.get("hlp", False): help(calcAsymmetry)
     except: pass
     #
     DD = deepcopy(D)
@@ -166,26 +170,31 @@ def polarization(**kwargs):
     """
     This method calculates Px, Py, and/or Pz from data from the asymmetry()
     method. Pass any valid combination of asymmetries from coil 1 and coil 2 
-    and rotator -1 and +1 as arguments c1rp, c1rm, c2rp, and/or c2rm.
+    and rotator -1 and +1 as keyword arguments c1rp, c1rm, c2rp, and/or c2rm.
     Also accept the keyword argument sherman.
+    
+    Keyword arguments:
+        c1rp    dopey data object   from .calcAsymmetry() for coil 1 and rotator +1
+        c1rm    dopey data object   from .calcAsymmetry() for coil 1 and rotator -1
+        c2rp    dopey data object   from .calcAsymmetry() for coil 2 and rotator +1
+        c2rm    dopey data object   from .calcAsymmetry() for coil 2 and rotator -1
+    
+    Combinations of valid arguments:
+        1   c1rp    c1rm    c2rp    c2rm    Full calculation of Px, Py, and Pz
+        2                   c2rp    c2rm    Full calculation of Px and Py
+        3   c1rp            c2rp    c2rm    Full calculation of Px and Py, possibly an approximation of Pz
+        4           c1rm    c2rp    c2rm    Full calculation of Px and Py, possibly an approximation of Pz
+        5   c1rp    c1rm                    Possibly an approximation of Pz
+        6   c1rp                            Possibly an approximation of Pz
+        7           c1rm                    Possibly an approximation of Pz  
+    
+    'Possibly an approximation of Pz' means that the result is depending on the magnitude of the in-plane
+    component and its direction. For a sample with ONLY Pz it is enough to only c1rp or only c1rm. 
     """
-    global SHERMAN
     try:
-        if kwargs.get("hlp", False):
-            print(f"{Fore.BLUE}Arguments needed:")
-            print("  correct calculation of Px and Py                   c2rp and c2rm")
-            print("  correct calculation of Px, Py, and Pz              c1rp, c1rm, c2rp, and c2rm")
-            print("  correct calculation of Px and Py estimating Pz     c1rp or c2rp, c2rmp and c2rm")
-            print("  estimating Pz                                      c1rp and c2rp")
-            print("  estimating Pz                                      c1rp or c2rp")
-            print(f"{Fore.BLUE}Keyword arguments:")
-            print("  c1rp, c1rm, c2rp, c2rm                             data objects from asymmetry()")
-            print(f"  sherman                                            scalar (default {SHERMAN})")
-            print(f"Extra keyword arguments:")
-            print("  tilt, polar, azimuth                               project lab frame to sample frame")
-            print("                                                     (or use method projectSpin in a 2nd step)")
-            print(Fore.RESET)
+        if kwargs.get("hlp", False): help(polarization)
     except: pass
+    global SHERMAN
     #
     D = DataObject()
     D._addProperty("data_type", "none")
@@ -400,8 +409,14 @@ def projectSpin(D = object, tilt = 0, polar = 0, azimuth = 0, **kwargs):
     sample is in off-normal position.
     Pass the output from the polarization() method plus arguments tilt, polar, and azimuth.
     Returns a data object.
+    
+    Note: under development!
     """
     print(f"\n{Fore.MAGENTA}projectSpin(): I'm in development. {Style.BRIGHT}Verify that the output make sense.{Style.RESET_ALL} Data type spin_arpes throws an error.{Fore.RESET}\n")
+    #
+    try:
+        if kwargs.get("hlp", False): help(projectSpin)
+    except: pass
     #
     DD = deepcopy(D)
     #
