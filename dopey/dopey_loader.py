@@ -1,8 +1,9 @@
-__version__ = "26.02.25"
+__version__ = "26.03.03"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.03.03    Included loading of e_scanner2 pickled files.
 Version 26.02.25    Unimportant update reladed to the hlp keyword arguments.    
 Version 26.02.20    Removed the option to pass a dict from loadXY() into load(). Now load() only accept file names.
 Version 26.02.10    Updated the 'experiment' dict to be a DataObject.
@@ -263,12 +264,15 @@ def load(file_name = "", **kwargs):
     if not type(keep_raw_data) is bool: keep_raw_data = False
     if not type(only_raw) is bool: only_raw = False   
     #
-    raw_data = loadXY(file_name = file_name, shup = shup, keep_raw_data = keep_raw_data)
-    if len(raw_data) == 0:
-        print(f"{Fore.RED}I could not find any data to load, alternatively I failed attempting to load the data.{Fore.RESET}")
-        return DataObject()      
+    if file_name.lower().endswith(".xy"):
+        raw_data = loadXY(file_name = file_name, shup = shup, keep_raw_data = keep_raw_data)
+        if len(raw_data) == 0:
+            print(f"{Fore.RED}I could not find any data to load, alternatively I failed attempting to load the data.{Fore.RESET}")
+            return DataObject()
+    elif file_name.lower().endswith(".pickle"):
+        return _loadPickledData(file_name = file_name, shup = shup)
                 
-    # --- save what we got so far
+    # --- save what we got so far (from 'normal' xy-files, not pickled stuff)
         
     D._addProperty("file_name", file_name)
     D._addProperty("experiment", raw_data["experiment"])
@@ -606,71 +610,118 @@ def load(file_name = "", **kwargs):
 # ================================================================================================================================
 
 
-
-
-
-
-
-
-
-
-
-
-# ---------------------------------------------------------------------------------------------------------------
-# ---------------------------------------------------------------------------------------------------------------
-
-def pickleSave(D = object, file_name = "file.pickle", **kwargs):
+def _loadPickledData(file_name = "", **kwargs):
     """
-    Save whatever object, data, etc. using pickle.
-    
-    Arguments:
-        D           object
-        file_name   string
     """
-    try:
-        if kwargs.get("hlp", False): help(pickleSave)
-    except: pass
+    D = DataObject()
+    if not type(file_name) is str:
+        print(f"{Fore.RED}The argument file_name must be a string.{Fore.RESET}"); file_name = ""
+    if len(file_name) == 0:
+        print(f"{Fore.RED}The argument file_name is an empty string.{Fore.RESET}"); file_name = ""
     #
-    try: typ = D.data_type
-    except:
-        print(f"{Fore.MAGENTA}The argument D is not a data object. I'll save it anyway, tho...{Fore.RESET}")
-    try: file_name = str(file_name)
-    except:
-        print(f"{Fore.MAGENTA}The argument file_name must be a string. Setting it to 'file.pickle'.{Fore.RESET}")
-        file_name = "file.pickle"
-    if not file_name[-7:].lower() == ".pickle":
-        print(f"{Fore.MAGENTA}Adding extension .pickle to the file name.{Fore.RESET}")
-        file_name += ".pickle"
-    try:
-        with open(file_name, "wb") as f:
-            pickle.dump(D, f, pickle.HIGHEST_PROTOCOL)
-        print(f"{Fore.BLUE}Saved to file {file_name}{Fore.RESET}")
-    except:
-        print(f"{Fore.RED}Could not save the data to {file_name}{Fore.RESET}")
-
-def pickleLoad(file_name = "file.pickle", **kwargs):
-    """
-    Load object, data, etc. saved by pickleSave().
-    
-    Arguments:
-        file_name   string
-    """
-    try:
-        if kwargs.get("hlp", False): help(pickleSave)
-    except: pass
-    try: file_name = str(file_name)
-    except:
-        print(f"{Fore.MAGENTA}The argument file_name must be a string. Setting it to 'file.pickle'.{Fore.RESET}")
-        file_name = "file.pickle"
+    shup = kwargs.get("shup", False)
+    if not type(shup) is bool: shup = False
+    #
     try:
         with open(file_name, "rb") as f:
-            D = pickle.load(f)
-        print(f"{Fore.BLUE}Loaded {file_name}{Fore.RESET}")
-        try: typ = D.data_type
-        except: typ = ""
+            P = pickle.load(f)
+            if not shup: print(f"{Fore.BLUE}Loaded {file_name}{Fore.RESET}")
     except:
-        print(f"{Fore.RED}Could not load data from {file_name}{Fore.RESET}")
-        return None
-    if typ != "": print(f"{Fore.BLUE}Data type {typ}{Fore.RESET}")
-    else: print(f"{Fore.BLUE}Unknown data type.{Fore.RESET}")
-    return D
+        print(f"{Fore.RED}I could not open the file '{file_name}'.{Fore.RESET}"); return D
+    #
+    # --- Figure out what data that has been pickled and loaded here
+    #
+    # ---- e_scanner2 data
+    if type(P) is dict:
+        if 'photon_energy' in P.keys() and 'kinetic_energy' in P.keys() and 'non_energy' in P.keys() and 'intensity' in P.keys():
+            print(f"{Fore.BLUE}{Style.BRIGHT}Note:{Style.NORMAL} This is prototype photon energy scan data.{Fore.RESET}")
+            D._addProperty("data_type", "photon_energy_scan")
+            D._addProperty("file_name", file_name)
+            D._addProperty("photon_energy", np.array(P["photon_energy"]))
+            D._addProperty("work_function", P["work_function"])
+            D._addProperty("kinetic_energies", np.array(P["kinetic_energy"]))
+            D._addProperty("angle", np.array(P["non_energy"][0]))
+            D._addProperty("intensities", np.array(P["intensity"]))
+            D._addProperty("binding_energy", D.photon_energy[0] - P["kinetic_energy"][0] - D.work_function)
+            A = DataObject()
+            A._addProperty("pass_energy", P["snapshot_definition"]["Ep"])
+            A._addProperty("dwell_time", P["snapshot_definition"]["dwell_time"])
+            A._addProperty("lens_mode", P["snapshot_definition"]["lens_mode"])
+            A._addProperty("energy_channels", P["snapshot_definition"]["energy_channels"])
+            A._addProperty("non_energy_channels", P["snapshot_definition"]["angle_channels"])
+            D._addProperty("analyzer", A)
+            #
+            return D
+    #
+    else:
+        return D
+    
+        
+
+
+
+
+
+
+
+
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------
+
+#def pickleSave(D = object, file_name = "file.pickle", **kwargs):
+#    """
+#    Save whatever object, data, etc. using pickle.
+#    
+#    Arguments:
+#        D           object
+#        file_name   string
+#    """
+#    try:
+#        if kwargs.get("hlp", False): help(pickleSave)
+#    except: pass
+#    #
+#    try: typ = D.data_type
+#    except:
+#        print(f"{Fore.MAGENTA}The argument D is not a data object. I'll save it anyway, tho...{Fore.RESET}")
+#    try: file_name = str(file_name)
+#    except:
+#        print(f"{Fore.MAGENTA}The argument file_name must be a string. Setting it to 'file.pickle'.{Fore.RESET}")
+#        file_name = "file.pickle"
+#    if not file_name[-7:].lower() == ".pickle":
+#        print(f"{Fore.MAGENTA}Adding extension .pickle to the file name.{Fore.RESET}")
+#        file_name += ".pickle"
+#    try:
+#        with open(file_name, "wb") as f:
+#            pickle.dump(D, f, pickle.HIGHEST_PROTOCOL)
+#        print(f"{Fore.BLUE}Saved to file {file_name}{Fore.RESET}")
+#    except:
+#        print(f"{Fore.RED}Could not save the data to {file_name}{Fore.RESET}")
+
+#def pickleLoad(file_name = "file.pickle", **kwargs):
+#    """
+#    Load object, data, etc. saved by pickleSave().
+#    
+#    Arguments:
+#        file_name   string
+#    """
+#    try:
+#        if kwargs.get("hlp", False): help(pickleSave)
+#    except: pass
+#    try: file_name = str(file_name)
+#    except:
+#        print(f"{Fore.MAGENTA}The argument file_name must be a string. Setting it to 'file.pickle'.{Fore.RESET}")
+#        file_name = "file.pickle"
+#    try:
+#        with open(file_name, "rb") as f:
+#            D = pickle.load(f)
+#        print(f"{Fore.BLUE}Loaded {file_name}{Fore.RESET}")
+#        try: typ = D.data_type
+#        except: typ = ""
+#    except:
+#        print(f"{Fore.RED}Could not load data from {file_name}{Fore.RESET}")
+#        return None
+#    if typ != "": print(f"{Fore.BLUE}Data type {typ}{Fore.RESET}")
+#    else: print(f"{Fore.BLUE}Unknown data type.{Fore.RESET}")
+#    return D
