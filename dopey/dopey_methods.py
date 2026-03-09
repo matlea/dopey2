@@ -1,8 +1,12 @@
-__version__ = "26.02.25"
+__version__ = "26.03.06"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.03.06    Added kTransformFermiCut().
+                    Added from3dslim() to pull out 1d or 2d data from data type from3d.
+Version 26.03.05    Added a rudimetary method k-transform kTransformer() method that accepts arrays.
+                    Added kTransformARPES() that accepts ARPES data, using kTransformer().
 Version 26.02.25    Unimportant update reladed to the hlp keyword arguments. 
 Version 26.02.14    All 'help' keyword arguments are now 'hlp'.
 Version 26.02.03    Updated compact(). Now handles ccd_2d and ccd3d.
@@ -25,7 +29,15 @@ except:
     print(Fore.RED + f'\n{__name__} could not import the ipywidget module and/or display from IPython.display.') 
     print('Interactive plots will not work.\n' + Fore.RESET)
 
+try: from dopey.dopey_constants import WORKFUNCTION
+except:
+    try: from dopey_constants import WORKFUNCTION
+    except: print(f"{Fore.RED}dopey_methods could not import from dopey_constants.{Fore.RESET}")
 
+try: from dopey.dopey_data_object import DataObject
+except:
+    try: from dopey_data_object import DataObject
+    except: print(f"{Fore.RED}dopey_methods could not import from dopey_data_object.{Fore.RESET}")
 
 
 
@@ -427,3 +439,246 @@ def align(D = object, **kwargs):
     box_out = ipw.HBox([Interact, vbox])
     box_out.layout = ipw.Layout(border="solid 1px gray", margin="5px", padding="2")
     display(box_out)
+    
+    
+    
+    
+    
+    
+# =====================================================================================================================
+# =====================================================================================================================
+# =====================================================================================================================
+# =====================================================================================================================
+
+
+def kTransformer(intensity = None, ek = None, a = None, wf = None, **kwargs):
+    """
+    This method does not accept dopey data objects but arrays!
+    
+    Transforms an (angle,ek) intensity map to a (kpar,ek) intensity map.
+    
+    Arguments:
+        intensity   array   intensity array (angle, kinetic energy)
+        a           array   angle axis, deg.
+        ek          array   kinetic energy axis, eV
+        wf          float   work function
+    
+    Returns a dict {kpar, ek, intensity}
+        
+    """
+    shup = kwargs.get("shup", False)
+    hlp  = kwargs.get("hlp", False)
+    if not type(shup) is bool: shup = False
+    if not type(hlp) is bool: hlp = False
+    #
+    ret_dict = {"kpar": None, "ek": None, "intensity": None}
+    #
+    if not type(intensity) is np.ndarray:
+        print(f"{Fore.RED}The argument 'intensity' must be a 2D array.{Fore.RESET}"); return ret_dict
+    if not len(np.shape(intensity)) == 2:
+        print(f"{Fore.RED}The argument 'intensity' must be a 2D array.{Fore.RESET}"); return ret_dict
+    if not type(ek) is np.ndarray:  
+        print(f"{Fore.RED}The argument 'ek' must be a 1D array.{Fore.RESET}"); return ret_dict
+    if not len(np.shape(ek)) == 1:
+        print(f"{Fore.RED}The argument 'ek' must be a 1D array.{Fore.RESET}"); return ret_dict
+    if not type(a) is np.ndarray:  
+        print(f"{Fore.RED}The argument 'a' must be a 1D array.{Fore.RESET}"); return ret_dict
+    if not len(np.shape(a)):
+        print(f"{Fore.RED}The argument 'a' must be a 1D array.{Fore.RESET}"); return ret_dict
+    try: wf = abs(float(wf))
+    except:
+        print(f"{Fore.RED}The argument 'wf' must be a positive number.{Fore.RESET}"); return ret_dict
+    #
+    ishape = np.shape(intensity)
+    if not (ishape[0] == len(a) and ishape[1] == len(ek)):
+        print(f"{Fore.RED}The dimension of the intensity array does not match the sizes of the axes.{Fore.RESET}")
+        print(f"  intensity: {ishape[0]} x {ishape[1]}")
+        print(f"  a:         {len(a)}")
+        print(f"  ek:        {len(ek)}")
+        return ret_dict
+    #
+    def kpar(Ek, a): return 0.52611 * np.sqrt(Ek - wf) * np.sin(a)
+    #
+    def angle(Ek, k): return np.arcsin(k/0.52611/np.sqrt(Ek-wf))
+    #
+    INTENSITY = np.zeros(np.shape(intensity))
+    ANGLE = np.deg2rad(a)
+    EK = np.copy(ek)
+    KPAR = np.linspace(kpar(max(EK), min(ANGLE)),  kpar(max(EK), max(ANGLE)), len(ANGLE))
+    del a, ek
+    #
+    for iek, ek in enumerate(EK):
+        for ik, k in enumerate(KPAR):
+            a = angle(ek, k)
+            if a >= ANGLE.min() and a <= ANGLE.max():
+                ia = abs(a - ANGLE).argmin()
+                INTENSITY[ik][iek] = intensity[ia][iek]
+    #
+    ret_dict.update({"intensity": INTENSITY, "ek": EK, "kpar": KPAR})
+    return ret_dict
+    
+
+
+def kTansformARPES(D = object, **kwargs):
+    """
+    Accepts dopey data objects containing ARPES data (y-angle or x-deflector as angle) and
+    return a data object with k-transformed intensity.
+    
+    Arguments:
+        D       dopey data object
+    Keyword Arguments:
+        wf      number              work function. if not passed then the default from dopey_constants.py will be used.
+        shup    bool                
+        hlp     bool                
+    """
+    try:
+        if kwargs.get("hlp", False): help(kTansformARPES)
+    except: pass
+    shup = kwargs.get("shup", False)
+    if not type(shup) is bool: shup = False
+    #
+    wf = kwargs.get("wf", WORKFUNCTION)
+    try: wf = abs(float(wf))
+    except:
+        print(f"{Fore.RED}The keyword argument wf (work function) must be positive number. Setting default wf = {WORKFUNCTION}{Fore.RESET}")
+        wf = WORKFUNCTION
+    #
+    DD = deepcopy(D)
+    try: typ = DD.data_type
+    except:
+        print(f"{Fore.RED}The argument D must be dopey data object.{Fore.RESET}"); return DD
+    #
+    if typ != "ccd_2d":
+        if typ == 'from3d':
+            print(f"{Fore.BLUE}The data comes from dopey_plot.slice3D() and contains both 2d and 1d data.") 
+            print(f"Use from3dslim() to get the 2d data and run this method again.{Fore.RESET}"); return DD
+        elif typ == 'fermi_cut':
+            print(f"{Fore.MAGENTA}I'm sending this data to kTransformFermiCut()...{Fore.RESET}")
+            return kTransformFermiCut(D = D, **kwargs)
+        else:
+            print(f"{Fore.RED}The argument D must be an ARPES data object.{Fore.RESET}"); return DD
+    #
+    if D.axis0_label.lower().startswith("k"):
+        print(f"{Fore.RED}This data is already k-transformed.{Fore.RESET}"); return DD
+    #
+    kt = kTransformer(intensity = D.intensity, ek = D.axis1, a = D.axis0, wf = wf)
+    DD.intensity = kt["intensity"]
+    DD.axis0 = kt["kpar"]
+    DD.axis0_label = "k (1/Å)"
+    return DD
+
+
+def kTransformFermiCut(D = object, **kwargs):
+    """
+    Under development.
+    """
+    try:
+        if kwargs.get("hlp", False): help(kTransformFermiCut)
+    except: pass
+    shup = kwargs.get("shup", False)
+    if not type(shup) is bool: shup = False
+    #
+    wf = kwargs.get("wf", WORKFUNCTION)
+    try: wf = abs(float(wf))
+    except:
+        print(f"{Fore.RED}The keyword argument wf (work function) must be positive number. Setting default wf = {WORKFUNCTION}{Fore.RESET}")
+        wf = WORKFUNCTION
+    #
+    DD = deepcopy(D)
+    try: typ = DD.data_type
+    except:
+        print(f"{Fore.RED}The argument D must be dopey data object.{Fore.RESET}"); return DD
+    #
+    if not typ == "fermi_cut":
+        print(f"{Fore.RED}The argument D must be an fermicut data object.{Fore.RESET}"); return DD
+    #
+    if D.axis0_label.lower().startswith("k"):
+        print(f"{Fore.RED}This data is already k-transformed.{Fore.RESET}"); return DD
+    #
+    # check if the x-axis and y-axis are what I expect them to be. It might be that I (in the future) add some new method
+    # that does something weird...
+    if not ("ShiftX" in D.axis0_label and "ordinate" in D.axis1_label):
+        DD.axis0, DD.axis0_label = D.axis1, D.axis1_label
+        DD.axis1, DD.axis1_label = D.axis0, D.axis0_label
+        DD.intensity = D.intensity.T
+    #
+    def kpar(Ek, a): return 0.52611 * np.sqrt(Ek - wf) * np.sin(a)
+    def angle(Ek, k): return np.arcsin(k/0.52611/np.sqrt(Ek-wf))
+    #
+    SHIFTX = np.deg2rad(DD.axis0)
+    ANGLE = np.deg2rad(DD.axis1)
+    kxmin, kxmax = kpar(DD.Ek, SHIFTX.min()), kpar(DD.Ek, SHIFTX.max())
+    kymin, kymax = kpar(DD.Ek, ANGLE.min()), kpar(DD.Ek, ANGLE.max())
+    KX = np.linspace(kxmin, kxmax, len(SHIFTX))
+    KY = np.linspace(kymin, kymax, len(ANGLE))
+    intensityk = np.zeros([len(KX), len(KY)]) * np.NaN
+    #
+    for ikx, kx in enumerate(KX):
+        ax = angle(DD.Ek, kx)
+        if ax >= SHIFTX.min() and ax <= SHIFTX.max():
+            iax = abs(ax - SHIFTX).argmin()
+            for iky, ky in enumerate(KY):
+                ay = angle(DD.Ek, ky)
+                if ay >= ANGLE.min() and ax <= ANGLE.max():
+                    iay = abs(ay - ANGLE).argmin()
+                    intensityk[ikx][iky] = DD.intensity[iax][iay]
+    DD.intensity = intensityk
+    DD.axis0 = KX
+    DD.axis0_label = "kx (1/Å)"
+    DD.axis1 = KY
+    DD.axis1_label = "ky (1/Å)"
+    #
+    return DD
+
+            
+
+def from3dslim(D = object, keep = 0):
+    """
+    """
+    DD = deepcopy(D)
+    try:
+        if not D.data_type == "from3d":
+            print(f"{Fore.RED}The argument D must be of type 'from3d' from slice3D().{Fore.RESET}"); return DD
+    except:
+        print(f"{Fore.RED}The argument D must be of type 'from3d' from slice3D().{Fore.RESET}"); return DD
+    #
+    try: keep = int(keep)
+    except:
+        print(f"{Fore.RED}The argument keep must be an integer (0,1, or 2).{Fore.RESET}"); return DD
+    if not keep in [0,1,2]:
+        print(f"{Fore.RED}The argument keep must be an integer (0,1, or 2).{Fore.RESET}"); return DD
+    #
+    newD = DataObject()
+    if keep == 0:
+        newD._addProperty("intensity", D.intensity0.T)
+        newD._addProperty("axis0", D.axis1)
+        newD._addProperty("axis1", D.axis2)
+        newD._addProperty("axis0_label", D.axis1_label)
+        newD._addProperty("axis1_label", D.axis2_label)
+        if ("shiftx" in newD.axis0_label.lower() or "shiftx" in newD.axis1_label.lower()) and ("ordinate" in newD.axis0_label.lower() or "ordinate" in newD.axis1_label.lower()):
+            newD._addProperty("data_type", "fermi_cut")
+            newD._addProperty("Ek", D.params.axis0)
+        elif "kinetic" in newD.axis0_label.lower() or "kinetic" in newD.axis1_label.lower():
+            newD._addProperty("data_type", "ccd_2d")
+    #
+    elif keep == 1:
+        newD._addProperty("intensity", D.intensity1)
+        newD._addProperty("axis0", D.axis1)
+        newD._addProperty("intensity_label", "")
+        newD._addProperty("axis0_label", D.axis1_label)
+        newD._addProperty("data_type", "1d")
+    #
+    elif keep == 2:
+        newD._addProperty("intensity", D.intensity2)
+        newD._addProperty("axis0", D.axis2)
+        newD._addProperty("intensity_label", "")
+        newD._addProperty("axis0_label", D.axis2_label)
+        newD._addProperty("data_type", "1d")
+    #
+    newD._addProperty("experiment", D.experiment)
+    return newD
+        
+
+        
+    
+    
