@@ -1,8 +1,9 @@
-__version__ = "26.02.14"
+__version__ = "26.03.03"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.02.26    Small bugfix related to aspect in _plot_data_ccd2d().
 Version 26.02.26    Small bugfix in _plot_data_ccd3d(): the compact() method was missing shup = False.
 Version 26.02.14    All 'help' keyword arguments are now 'hlp'.
 Version 26.02.10    Updated slice3D() to take more advantage of DataObject(). Also updated _plot_data_from3d() to follow.
@@ -121,6 +122,7 @@ def _plot_data_ccd2d(D = object, ax = None, cmap = "bone_r", shup = False, **kwa
             print("figsize     tuple")
             print("transpose   bool")
             print("cmap        string")
+            print("aspect      string   (auto or equal)")
             print(Fore.RESET)
     except: pass
     #
@@ -141,8 +143,14 @@ def _plot_data_ccd2d(D = object, ax = None, cmap = "bone_r", shup = False, **kwa
     xlabel, ylabel = D.axis1_label, D.axis0_label
     if transpose: axis0, axis1, intensity, xlabel, ylabel = axis1, axis0, intensity.T, ylabel, xlabel
     #
+    aspect = kwargs.get("aspect", "auto")
+    if not type(aspect) is str:
+        print(f"{Fore.RED}The argument aspect must be a string (equal or auto). Setting aspect = 'auto'.{Fore.RESET}"); aspect = "auto"
+    if not aspect in ["equal", "auto"]:
+        print(f"{Fore.RED}The argument aspect must be a string (equal or auto). Setting aspect = 'auto'.{Fore.RESET}"); aspect = "auto"
+    #
     extent = [axis1[0], axis1[-1], axis0[-1], axis0[0]]
-    ims = ax.imshow(intensity, aspect = "auto", extent = extent, cmap = cmap)
+    ims = ax.imshow(intensity, aspect = aspect, extent = extent, cmap = cmap)
     ax.invert_yaxis()
     #
     ax.set_xlabel(xlabel)
@@ -998,10 +1006,14 @@ def slice3D(D = object, axis = None, shup = False):
     retD._addProperty("axis2", axis_2)
     retD._addProperty("axis1_label", axis_1_label)
     retD._addProperty("axis2_label", axis_2_label)
-    retD._addProperty("Analysis_Method", D.Analysis_Method)
-    retD._addProperty("Analyzer", D.Analyzer)
-    retD._addProperty("Lens_Mode", D.Lens_Mode)
-    retD._addProperty("Scan_Mode", D.Scan_Mode)
+    retD_exp = DataObject()
+    retD_exp._addProperty("Ep", D.experiment.Ep)
+    retD_exp._addProperty("Excitation_Energy", D.experiment.Excitation_Energy)
+    retD_exp._addProperty("Analysis_Method", D.experiment.Analysis_Method)
+    retD_exp._addProperty("Analyzer", D.experiment.Analyzer)
+    retD_exp._addProperty("Lens_Mode", D.experiment.Lens_Mode)
+    retD_exp._addProperty("Scan_Mode", D.experiment.Scan_Mode)
+    retD._addProperty("experiment", retD_exp)
     retD_params = DataObject()
     retD_params._addProperty("axis0", None)
     retD_params._addProperty("axis1", None)
