@@ -1,4 +1,4 @@
-__version__ = "26.03.03"
+__version__ = "26.03.18"
 __author__  = "Mats Leandersson"
 
 
@@ -31,7 +31,7 @@ import pickle
 try: from dopey.dopey_data_object import DataObject
 except:
     try: from dopey_data_object import DataObject
-    except: print(f"{Fore.RED}dopey_loader could not import from dopey_data_object.{Fore.RESET}")
+    except: print(f"{Fore.RED}issue: dopey_loader could not import from dopey_data_object.{Fore.RESET}")
 
 CCD_ANALYZERS  = ["PhoibosCCD", "AnalyzerCCD"]
 SPIN_ANALYZERS = ["PhoibosSpin"]

@@ -17,10 +17,13 @@ from colorama import Fore
 import sys
 
 
-def methodsLoaded(lst = []):
+def methodsLoaded(lst = [], hlp = False):
     """
     Returns True if all the methods, variables, modules, etc. in the list lst are loaded.
     """
+    if not type(hlp) is bool: hlp = False
+    if hlp:
+        help(methodsLoaded)
     if not type(lst) is list: return False
     if len(lst) == 0: return False
     dic = sys.modules["dopey"].__dict__

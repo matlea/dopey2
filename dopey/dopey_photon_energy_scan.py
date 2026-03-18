@@ -1,4 +1,4 @@
-__version__ = "26.03.05 (prototype)"
+__version__ = "26.03.18 (prototype)"
 __author__  = "Mats Leandersson"
 
 
@@ -9,14 +9,14 @@ Version 26.02.27    First version.
 
 import matplotlib.pyplot as plt
 import numpy as np
-from ipywidgets import *
+from ipywidgets import widgets, interact
 from copy import deepcopy
 from colorama import Fore, Style
 
 try: from dopey.dopey_methods import kTransformer
 except:
     try: from dopey_methods import kTransformer
-    except: print(f"{Fore.RED}dopey_photon_energy_scan could not import from dopey_methods.{Fore.RESET}")
+    except: print(f"{Fore.RED}issue: dopey_photon_energy_scan could not import from dopey_methods.{Fore.RESET}")
 
 
 

@@ -1,4 +1,4 @@
-__version__ = "26.02.25"
+__version__ = "26.03.18"
 __author__  = "Mats Leandersson"
 
 
@@ -38,19 +38,19 @@ try: from dopey.dopey_constants import SHERMAN
 except:
     try: from dopey_constants import SHERMAN
     except: 
-        print(Fore.RED + "dopey_loader.py: coluld not import from dopey_constants.py" + Fore.RESET)
+        print(Fore.RED + "issue: dopey_spin coluld not import from dopey_constants.py" + Fore.RESET)
         SHERMAN = 0.29
 
 try: from dopey_data_object import DataObject
 except:
     try: from dopey.dopey_data_object import DataObject
     except:
-        print(Fore.RED + "dopey_spin.py: coluld not import from dopey_data_object.py" + Fore.RESET)
+        print(Fore.RED + "issue: dopey_spin coluld not import from dopey_data_object.py" + Fore.RESET)
 
 try: 
     import ipywidgets as ipw
     from IPython.display import display
-except: print(f"{Fore.RED}{__name__} could not import the ipywidget module and/or display from IPython.display. Some methods will not work.{Fore.RESET}")
+except: print(f"{Fore.RED}issue: dopey_spin could not import the ipywidget module and/or display from IPython.display. Some methods will not work.{Fore.RESET}")
         
 # Target angle:
 TA = np.deg2rad(15)

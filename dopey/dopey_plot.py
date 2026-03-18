@@ -1,4 +1,4 @@
-__version__ = "26.03.03"
+__version__ = "26.03.18"
 __author__  = "Mats Leandersson"
 
 
@@ -33,17 +33,17 @@ from copy import deepcopy
 try: from dopey_data_object import DataObject
 except:
     try: from dopey.dopey_data_object import DataObject
-    except: print(f"{Fore.RED}dopey_plot could not import from dopey_data_object.{Fore.RESET}")
+    except: print(f"{Fore.RED}issue: dopey_plot could not import from dopey_data_object.{Fore.RESET}")
 
 try: from dopey_methods import fermiMapCut, subArray, compact
 except: 
     try: from dopey.dopey_methods import fermiMapCut, subArray, compact
-    except: print(f"{Fore.RED}{__name__} could not import required methods from dopey_methods.{Fore.RESET}")
+    except: print(f"{Fore.RED}issue: dopey_plot could not import required methods from dopey_methods.{Fore.RESET}")
     
 try: 
     import ipywidgets as ipw
     from IPython.display import display
-except: print(f"{Fore.RED}{__name__} could not import the ipywidget module and/or display from IPython.display.{Fore.RESET}")
+except: print(f"{Fore.RED}issue: dopey_plot could not import the ipywidget module and/or display from IPython.display.{Fore.RESET}")
 
 
 

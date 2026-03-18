@@ -1,4 +1,4 @@
-__version__ = "26.03.06"
+__version__ = "26.03.14"
 __author__  = "Mats Leandersson"
 
 
@@ -26,18 +26,18 @@ try:
     import ipywidgets as ipw
     from IPython.display import display
 except: 
-    print(Fore.RED + f'\n{__name__} could not import the ipywidget module and/or display from IPython.display.') 
-    print('Interactive plots will not work.\n' + Fore.RESET)
+    print(Fore.RED + f'issue: dopey_methods could not import the ipywidget module and/or display from IPython.display.') 
+    print('       Interactive plots will not work.' + Fore.RESET)
 
 try: from dopey.dopey_constants import WORKFUNCTION
 except:
     try: from dopey_constants import WORKFUNCTION
-    except: print(f"{Fore.RED}dopey_methods could not import from dopey_constants.{Fore.RESET}")
+    except: print(f"{Fore.RED}issue: dopey_methods could not import from dopey_constants.{Fore.RESET}")
 
 try: from dopey.dopey_data_object import DataObject
 except:
     try: from dopey_data_object import DataObject
-    except: print(f"{Fore.RED}dopey_methods could not import from dopey_data_object.{Fore.RESET}")
+    except: print(f"{Fore.RED}issue: dopey_methods could not import from dopey_data_object.{Fore.RESET}")
 
 
 
