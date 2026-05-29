@@ -1,8 +1,12 @@
-__version__ = "26.02.14"
+__version__ = "26.05.06"
 __author__  = "Mats Leandersson"
 
 
 """
+Version 26.05.06    Had forgotten experiment in f.write(f"# spectrum id: {D.experiment.Spectrum_ID}\n")
+                    in the export2txt() method.
+                    Also, in the same method, changed D.intensity.T[0] to D.intensity.T[i] in
+                    f.write( f"{round(D.axis0[i],5)}\t" + "\t".join(str(round(e,5)) for e in D.intensity.T[i]) + "\n" )
 Version 26.02.14    All 'help' keyword arguments are now 'hlp'.
 Version 25.11.10    Export to text.
 """
@@ -47,14 +51,14 @@ def export2txt(D = object, file_name = "data", **kwargs):
         file_name = f"{file_name}.dat"
         with open(file_name, "w") as f:
             f.write(f"# file name:   {D.file_name}\n")
-            f.write(f"# spectrum id: {D.Spectrum_ID}\n")
+            f.write(f"# spectrum id: {D.experiment.Spectrum_ID}\n")
             f.write("# columns:     x-axis, y-axes\n")
             f.write(f"# x-axis:      {D.axis0_label}\n")
             #
             if not "asymmetry" in D._listAttributes():
                 f.write(f"# y-axes:      Negative polarity {str(list(D.parameter0))[1:-1]}\n")
                 for i in range(len(D.axis0)):
-                    f.write( f"{round(D.axis0[i],5)}\t" + "\t".join(str(round(e,5)) for e in D.intensity.T[0]) + "\n" )
+                    f.write( f"{round(D.axis0[i],5)}\t" + "\t".join(str(round(e,5)) for e in D.intensity.T[i]) + "\n" )
             else:
                 f.write(f"# y-axes:      asymmetry, plus component, minus component\n")
                 for i in range(len(D.axis0)):
