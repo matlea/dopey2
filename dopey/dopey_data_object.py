@@ -168,6 +168,47 @@ class DataObject():
             if type(self.__dict__.get(key, None)) is np.ndarray:
                 lst.append(key.replace("__",""))
         return lst
+    
+    # ----------- over-load methods ------
+    
+    def __add__(self, d ):
+        """
+        """
+        try: dt = d.data_type
+        except:
+            print(f"{Fore.RED}The data objects are not of the same type.{Fore.RESET}")
+            return self
+        if dt == "spin_edc": return _add_spin_edc_objects(self, d)
+        else:
+            print(f"{Fore.MAG}'Addition' is not implemented for these data types.{Fore.RESET}"); return self
+        
+            
+
+
+
+
+def _add_spin_edc_objects(d1, d2):
+    """
+    """
+    if not len(d1.axis0) == len(d2.axis0):
+        print(f"{Fore.RED}The two data sets have different energy axes.{Fore.RESET}"); return d1
+    D = DataObject()
+    D._addProperty("file_name", "(contains data from more than one file)")
+    D._addProperty("parameters", d1.parameters)
+    D._addProperty("data_type", d1.data_type)
+    D._addProperty("intensity_label", d1.intensity_label)
+    D._addProperty("axis0_label", d1.axis0_label)
+    D._addProperty("parameter0_label", d1.parameter0_label)
+    D._addProperty("experiment", d1.experiment)
+    intensity = np.concatenate((d1.intensity, d2.intensity), axis = 0)
+    D._addProperty("intensity", intensity)
+    D._addProperty("axis0", d1.axis0)
+    parameter0 = np.concatenate((d1.parameter0, d2.parameter0), axis = 0)
+    D._addProperty("parameter0", parameter0)
+    #
+    return D
+    
+    
         
 
 
