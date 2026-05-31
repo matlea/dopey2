@@ -755,9 +755,9 @@ def despikeSpinManual(D = object, **kwargs):
     if not "spin" in typ:
         print(f"{Fore.RED}The argument D must be Data object containing (sorted!) spin data.{Fore.RESET}"); return DD
     #
-    if "edc" in typ:  _despikeSpinManualEDC(D = D, **kwargs)
-    elif "mdc" in typ:  _despikeSpinManualEDC(D = D, **kwargs)
-    elif "map" in typ: _despikeSpinManualMap(D = D, **kwargs)
+    if "edc" in typ:  return _despikeSpinManualEDC(D = D, **kwargs)
+    elif "mdc" in typ:  return _despikeSpinManualEDC(D = D, **kwargs)
+    elif "map" in typ: return _despikeSpinManualMap(D = D, **kwargs)
     else:
         print(f"{Fore.MAGENTA}Works for EDC, MDC, and Map...{Fore.RESET}"); return DD
 
@@ -794,7 +794,7 @@ def _despikeSpinManualEDC(D = object, **kwargs):
         Slider_curve.disabled = disabled
         Slider_point.disabled = disabled
         #
-        D.intensity[CURVE][POINT] = INTENSITY/100 * DD.intensity[CURVE][POINT]
+        DD.intensity[CURVE][POINT] = INTENSITY/100 * DD.intensity[CURVE][POINT]
         ax.plot(D.axis0, DD.intensity[CURVE], linewidth = 0.6, linestyle = "--", color = "blue")
         ax.plot(D.axis0, D.intensity[CURVE], linewidth = 0.6, linestyle = "-", color = "red")
         ax.axvline(x = D.axis0[POINT], linewidth = 0.6, linestyle = ":", color = "k")
@@ -810,6 +810,8 @@ def _despikeSpinManualEDC(D = object, **kwargs):
     box_out = ipw.HBox([Interact, widget_box])
     box_out.layout = ipw.Layout(border="solid 1px gray", margin="5px", padding="2")
     display(box_out)
+    print("yay!")
+    return DD
                                       
     
 
