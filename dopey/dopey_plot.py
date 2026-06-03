@@ -251,7 +251,7 @@ def _plot_data_spin_edc(D = object, ax = None, **kwargs):
         ax.legend(fontsize = 8)
     elif what_to_plot == "mean":
         ax.plot(D.axis0, D.intensity_off, label = "OFF", color = "tab:blue", linewidth = 0.7)
-        ax.plot(D.axis0, D.intensity_on, label = "OFF", color = "tab:red", linewidth = 0.7)
+        ax.plot(D.axis0, D.intensity_on, label = "ON", color = "tab:red", linewidth = 0.7)
         ax.legend(fontsize = 8)
     #
     ax.set_xlabel(D.axis0_label)
